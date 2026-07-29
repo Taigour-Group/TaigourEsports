@@ -1,24 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/css" href="https://www.xml-sitemaps.com/css/sitemap.css"?>
-<urlset
-      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-  xmlns:fo="http://www.w3.org/1999/XSL/Format"
-  xmlns:xhtml="http://www.w3.org/1999/xhtml"
-      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-<!-- created with Free Online Sitemap Generator www.xml-sitemaps.com -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
-
-<url>
-  <loc>https://taigour-esports.onrender.com/</loc>
-  <loc>https://taigour-esports.onrender.com/tournaments</loc>
-  <loc>https://taigour-esports.onrender.com/leaderboard</loc>
-  <loc>https://taigour-esports.onrender.com/streams</loc>
-  <loc>https://taigour-esports.onrender.com/profile</loc>
-
-  <lastmod>2026-06-25T07:28:06+00:00</lastmod>
-</url>
-
+  <url>
+       <loc>https://taigour-esports.onrender.com/</loc>
+       <lastmod>2026-07-29T06:16:31+00:00</lastmod>
+       <changefreq>daily</changefreq>
+       <priority>1.0000</priority>
+  </url>
 </urlset>
