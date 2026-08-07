@@ -67,6 +67,7 @@ const Header = () => {
     { name: 'Arena', path: '/tournaments', icon: 'fa-crosshairs' },
     { name: 'Ranks', path: '/leaderboard', icon: 'fa-crown' },
     { name: 'Live', path: '/streams', icon: 'fa-bolt' },
+    { name: 'App', path: '/download-app', icon: 'fa-download' },
   ];
 
   const getUserDisplayName = () => {

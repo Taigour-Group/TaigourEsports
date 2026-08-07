@@ -87,6 +87,9 @@ const HomePage = ({ tournaments, leaderboard, registrations }) => {
               <Link to="/tournaments" className="premium-button px-8 py-4 bg-cyan text-charcoal font-space font-bold text-sm uppercase tracking-wider hover:bg-white text-center">
                 Register Tournament
               </Link>
+              <Link to="/download-app" className="premium-button px-8 py-4 border border-cyan/40 text-cyan font-space font-bold text-sm uppercase tracking-wider hover:border-cyan hover:bg-cyan/10 text-center">
+                Download App
+              </Link>
               <Link to="/become-partner" className="premium-button px-8 py-4 border border-white/20 text-white font-space font-bold text-sm uppercase tracking-wider hover:border-cyan hover:bg-cyan/5 text-center">
                 Become Partner
               </Link>

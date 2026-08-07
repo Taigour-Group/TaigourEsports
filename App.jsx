@@ -25,6 +25,7 @@ const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage.jsx'));
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage.jsx'));
 const LegalLandingPage = lazy(() => import('./pages/LegalLandingPage.jsx'));
 const LegalPage = lazy(() => import('./pages/LegalLayout.jsx'));
+const MobileAppDownloadPage = lazy(() => import('./pages/MobileAppDownloadPage.jsx'));
 
 const App = () => {
   const [loading, setLoading] = useState(true);
@@ -141,6 +142,10 @@ const App = () => {
         '/terms-of-service': {
           title: 'Terms of Service | Taigour E-Sports',
           description: 'Review the rules and responsibilities for using Taigour E-Sports services and tournament platforms.'
+        },
+        '/download-app': {
+          title: 'Download Taigour E-Sports App | Taigour E-Sports',
+          description: 'Download the Taigour E-Sports mobile app for fast access to tournaments, streams, and player features.'
         }
       };
 
@@ -280,6 +285,7 @@ const App = () => {
               <Route path="/legal" element={<LegalLandingPage />} />
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
               <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+              <Route path="/download-app" element={<MobileAppDownloadPage />} />
               <Route path="/legal-layout" element={<LegalLayout />} />
 
               {/* Admin Route */}
