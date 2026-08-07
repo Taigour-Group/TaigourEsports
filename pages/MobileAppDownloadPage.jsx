@@ -10,12 +10,12 @@ const features = [
     description: 'Check live events, register quickly, and stay updated from your phone.',
     icon: 'fa-mobile-screen-button'
   },
-  { 
+  {
     title: 'Live Community Updates',
     description: 'Receive announcements, stream reminders, and leaderboards in real time.',
     icon: 'fa-bell'
   },
-  {
+  { 
     title: 'Player Profile & Wallet',
     description: 'Manage your profile, balance, and registrations from one place.',
     icon: 'fa-wallet'
