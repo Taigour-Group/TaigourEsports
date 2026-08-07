@@ -113,7 +113,7 @@ const App = () => {
         description: 'Taigour E-Sports is Nepal’s premier esports tournament platform for PUBG Mobile, Free Fire, Ludo, live streams, leaderboards, and competitive gaming events.'
       };
 
-      const routeMeta = {
+      const routeMeta = { 
         '/': defaultMeta,
         '/tournaments': {
           title: 'Find Nepal Esports Tournaments | Taigour E-Sports',
