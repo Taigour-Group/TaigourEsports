@@ -2,6 +2,7 @@
 import React, { useState, useMemo, lazy, Suspense, useEffect } from 'react';
 import { adminFetch } from '../services/adminAuth';
 import { hydrateCatalogFromSupabase } from '../constants/balanceConstants';
+import { DEFAULT_REGISTRATION_FIELDS, REGISTRATION_FIELD_DEFS, normalizeRegistrationFieldConfig } from '../constants/registrationFields';
 
 // Lazy-load AdminRequestsPanel at module level (not inside a render function)
 const AdminRequestsPanel = lazy(() => import('./AdminRequestsPanel'));
@@ -167,7 +168,8 @@ const AdminPanel = ({
     description: '', rules: ['No Emulators allowed', 'Fair play protocol active'],
     prize_breakdown: [{ position: '1st', reward: '◈ 600' }, { position: '2nd', reward: '◈ 400' }],
     max_slots: 48, stream_id: '',
-    login_required: true, payment_type: 'tgc_coin', team_size: 4
+    login_required: true, payment_type: 'tgc_coin', team_size: 4,
+    registration_fields: { ...DEFAULT_REGISTRATION_FIELDS }
   };
 
   const initialLeaderboard = {
@@ -289,7 +291,8 @@ const AdminPanel = ({
     const finalForm = {
       ...tourneyForm,
       game: gameLabel,
-      rules: sanitizedRules
+      rules: sanitizedRules,
+      registration_fields: normalizeRegistrationFieldConfig(tourneyForm.registration_fields)
     };
 
     try {
@@ -570,12 +573,23 @@ const AdminPanel = ({
     }
   };
 
+  const updateRegistrationFieldRequirement = (key, checked) => {
+    setTourneyForm((prev) => ({
+      ...prev,
+      registration_fields: normalizeRegistrationFieldConfig({
+        ...(prev.registration_fields || DEFAULT_REGISTRATION_FIELDS),
+        [key]: checked
+      })
+    }));
+  };
+
   const startEdit = (item) => {
     setEditingId(item.id);
     if (activeView === 'tournaments') {
       setTourneyForm({
         ...initialTournament,
         ...item,
+        registration_fields: normalizeRegistrationFieldConfig(item.registration_fields || item.required_fields || item.registration_required_fields),
         rules: item.rules || initialTournament.rules,
         prize_breakdown: item.prize_breakdown || initialTournament.prize_breakdown
       });
@@ -1326,6 +1340,36 @@ const AdminPanel = ({
                           <i className="fa-solid fa-circle-info text-primary mr-1"></i>
                           <strong>Rules:</strong> If <strong>TGC Coin</strong> is selected, login is enforced. If <strong>Direct Payment</strong> is selected, login can be disabled for guest registration.
                         </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest">Required Registration Fields</label>
+                        <span className="text-[7px] md:text-[8px] text-gray-500 uppercase tracking-widest">Fixed list only</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 md:gap-3">
+                        {REGISTRATION_FIELD_DEFS.map(({ key, label }) => {
+                          const enabled = Boolean(tourneyForm.registration_fields?.[key] ?? DEFAULT_REGISTRATION_FIELDS[key]);
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => updateRegistrationFieldRequirement(key, !enabled)}
+                              className={`w-full min-h-[55px] flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-all ${
+                                enabled
+                                  ? 'bg-primary/10 border-primary/40 text-white'
+                                  : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                              }`}
+                            >
+                              <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest leading-tight flex-1 break-words">{label}</span>
+                              <span className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-all ${enabled ? 'bg-primary border-primary' : 'bg-gray-800 border-gray-700'}`}>
+                                <span className={`h-4 w-4 rounded-full bg-white transition-all ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 

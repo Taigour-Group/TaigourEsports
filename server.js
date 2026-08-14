@@ -14,6 +14,7 @@ import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import validator from 'validator';
 import { z } from 'zod';
+import { getTournamentRegistrationFields } from './constants/registrationFields.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -103,6 +104,34 @@ function parseAmount(value) {
   const cleaned = String(value).replace(/[^\d.]/g, '');
   const num = Number(cleaned);
   return Number.isFinite(num) ? num : 0;
+}
+
+function validateTournamentRegistrationPayload(payload, tournament) {
+  const requiredFields = getTournamentRegistrationFields(tournament);
+  const errors = [];
+
+  if (requiredFields.team_name && !String(payload.team_name || '').trim()) errors.push('Team name is required');
+  if (requiredFields.team_tag && !String(payload.team_tag || '').trim()) errors.push('Team tag is required');
+  if (requiredFields.team_logo && !payload.team_logo) errors.push('Team logo is required');
+  if (requiredFields.manager_name && !String(payload.manager_name || '').trim()) errors.push('Manager name is required');
+  if (requiredFields.manager_contact && !String(payload.manager_contact || '').trim()) errors.push('Manager contact is required');
+  if (requiredFields.registrant_email && !String(payload.registrar_email || '').trim()) errors.push('Registrar email is required');
+
+  if (Array.isArray(payload.players)) {
+    payload.players.forEach((player, index) => {
+      if (requiredFields.player_name && !String(player.player_name || '').trim()) {
+        errors.push(`Player ${index + 1} name is required`);
+      }
+      if (requiredFields.player_uid && !String(player.player_uid || '').trim()) {
+        errors.push(`Player ${index + 1} UID is required`);
+      }
+      if (requiredFields.citizenship_photo && !player.player_citizenship_photo) {
+        errors.push(`Player ${index + 1} citizenship photo is required`);
+      }
+    });
+  }
+
+  return errors;
 }
 
 // --- Express Setup ---
@@ -1199,6 +1228,11 @@ async function processRegistrationQueue() {
       throw new Error(`This tournament strictly requires exactly ${requiredTeamSize} players.`);
     }
 
+    const fieldErrors = validateTournamentRegistrationPayload({ team_name, team_tag, team_logo, manager_name, manager_contact, registrar_email, players }, tournament);
+    if (fieldErrors.length > 0) {
+      throw new Error(fieldErrors[0]);
+    }
+
     const now = new Date();
     const registrationStart = parseDateAtStartOfDay(tournament.registration_start_date);
     const registrationEnd = parseDateAtEndOfDay(tournament.registration_end_date);
@@ -1315,13 +1349,19 @@ app.post('/api/team-register', registrationLimiter, async (req, res) => {
   try {
     const { tournament_id, team_name, team_tag, manager_name, manager_contact, registrar_email, players } = req.body;
 
-    if (!tournament_id || !team_name || !team_tag || !manager_name || !manager_contact || !registrar_email) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const tournament = await supabase
+      .from('tournaments')
+      .select('*')
+      .eq('id', tournament_id)
+      .maybeSingle();
+
+    if (tournament.error) {
+      return res.status(400).json({ error: 'Tournament not found' });
     }
-    for (const player of players) {
-      if (!player.player_name || !player.player_uid || !player.player_citizenship_photo) {
-        return res.status(400).json({ error: 'All player fields are required (name, UID, photo)' });
-      }
+
+    const fieldErrors = validateTournamentRegistrationPayload({ team_name, team_tag, team_logo: req.body.team_logo, manager_name, manager_contact, registrar_email, players }, tournament.data || {});
+    if (fieldErrors.length > 0) {
+      return res.status(400).json({ error: fieldErrors[0] });
     }
 
     const ticket_id = crypto.randomUUID();

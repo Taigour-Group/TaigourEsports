@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { getTournamentRegistrationFields } from '../constants/registrationFields';
 
 const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) => {
   const { user, profile } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [formErrors, setFormErrors] = useState({});
+  const requiredFields = getTournamentRegistrationFields(tournament);
+  const isFieldRequired = (fieldKey) => requiredFields[fieldKey] ?? true;
 
   const [formData, setFormData] = useState({
     // Basic Details
@@ -50,35 +53,39 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
     const errors = {};
 
     if (step === 1) {
-      if (!formData.registrantEmail.trim()) errors.registrantEmail = 'Email is required';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.registrantEmail)) {
-        errors.registrantEmail = 'Invalid email format';
+      if (isFieldRequired('registrant_email')) {
+        if (!formData.registrantEmail.trim()) errors.registrantEmail = 'Email is required';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.registrantEmail)) {
+          errors.registrantEmail = 'Invalid email format';
+        }
       }
     }
 
     if (step === 2) {
-      if (!formData.teamName.trim()) errors.teamName = 'Team name is required';
-      if (!formData.teamTag.trim()) errors.teamTag = 'Team tag is required';
-      if (!formData.teamLogo) errors.teamLogo = 'Team logo is required';
+      if (isFieldRequired('team_name') && !formData.teamName.trim()) errors.teamName = 'Team name is required';
+      if (isFieldRequired('team_tag') && !formData.teamTag.trim()) errors.teamTag = 'Team tag is required';
+      if (isFieldRequired('team_logo') && !formData.teamLogo) errors.teamLogo = 'Team logo is required';
     }
 
     if (step === 3) {
-      if (!formData.managerFullName.trim()) errors.managerFullName = 'Manager full name is required';
-      if (!formData.managerContactNumber.trim()) errors.managerContactNumber = 'Contact number is required';
-      else if (!/^[+]?[\d\s-()]{7,}$/.test(formData.managerContactNumber.replace(/\s/g, ''))) {
-        errors.managerContactNumber = 'Invalid phone number format';
+      if (isFieldRequired('manager_name') && !formData.managerFullName.trim()) errors.managerFullName = 'Manager full name is required';
+      if (isFieldRequired('manager_contact')) {
+        if (!formData.managerContactNumber.trim()) errors.managerContactNumber = 'Contact number is required';
+        else if (!/^[+]?[\d\s-()]{7,}$/.test(formData.managerContactNumber.replace(/\s/g, ''))) {
+          errors.managerContactNumber = 'Invalid phone number format';
+        }
       }
     }
 
     if (step === 4) {
       formData.players.forEach((player, idx) => {
-        if (!player.fullName.trim()) {
+        if (isFieldRequired('player_name') && !player.fullName?.trim()) {
           errors[`player_${idx}_name`] = `Player ${idx + 1} name is required`;
         }
-        if (!player.uid.trim()) {
+        if (isFieldRequired('player_uid') && !player.uid?.toString().trim()) {
           errors[`player_${idx}_uid`] = `Player ${idx + 1} UID is required`;
         }
-        if (!player.citizenshipPhoto) {
+        if (isFieldRequired('citizenship_photo') && !player.citizenshipPhoto) {
           errors[`player_${idx}_photo`] = `Player ${idx + 1} citizenship photo is required`;
         }
       });
@@ -227,24 +234,26 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
               <p className="text-sm text-gray-400">Enter the email of the person registering the team</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                Email Address <span className="text-pink">*</span>
-              </label>
-              <input
-                type="email"
-                value={formData.registrantEmail}
-                onChange={(e) => handleInputChange('registrantEmail', e.target.value)}
-                placeholder="your.email@example.com"
-                className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                  formErrors.registrantEmail ? 'border-pink' : 'border-white/10 focus:border-primary'
-                }`}
-                disabled={!!user?.email}
-              />
-              {formErrors.registrantEmail && (
-                <p className="mt-1 text-xs text-pink font-bold">{formErrors.registrantEmail}</p>
-              )}
-            </div>
+            {isFieldRequired('registrant_email') && (
+              <div>
+                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
+                  Email Address <span className="text-pink">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={formData.registrantEmail}
+                  onChange={(e) => handleInputChange('registrantEmail', e.target.value)}
+                  placeholder="your.email@example.com"
+                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
+                    formErrors.registrantEmail ? 'border-pink' : 'border-white/10 focus:border-primary'
+                  }`}
+                  disabled={!!user?.email}
+                />
+                {formErrors.registrantEmail && (
+                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.registrantEmail}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -258,83 +267,91 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
               <p className="text-sm text-gray-400">Tell us about your team</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                  Team Name <span className="text-pink">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.teamName}
-                  onChange={(e) => handleInputChange('teamName', e.target.value)}
-                  placeholder="e.g., Phoenix Warriors"
-                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                    formErrors.teamName ? 'border-pink' : 'border-white/10 focus:border-primary'
-                  }`}
-                />
-                {formErrors.teamName && (
-                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.teamName}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                  Team Tag <span className="text-pink">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.teamTag}
-                  onChange={(e) => handleInputChange('teamTag', e.target.value.toUpperCase())}
-                  placeholder="e.g., PW"
-                  maxLength="10"
-                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                    formErrors.teamTag ? 'border-pink' : 'border-white/10 focus:border-primary'
-                  }`}
-                />
-                {formErrors.teamTag && (
-                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.teamTag}</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                Team Logo <span className="text-pink">*</span>
-              </label>
-              <div className="relative">
-                {formData.teamLogoPreview ? (
-                  <div className="relative w-full h-48 bg-white/5 rounded-lg border border-white/10 overflow-hidden flex items-center justify-center">
-                    <img src={formData.teamLogoPreview} alt="Team Logo Preview" className="max-h-full max-w-full object-contain" />
-                    <button
-                      type="button"
-                      onClick={() => handleInputChange('teamLogo', null)}
-                      className="absolute top-2 right-2 bg-pink/20 hover:bg-pink/40 text-pink px-3 py-1 rounded text-xs font-bold"
-                    >
-                      REMOVE
-                    </button>
-                  </div>
-                ) : (
-                  <label className={`w-full h-48 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-all ${
-                    formErrors.teamLogo ? 'border-pink' : 'border-white/20 hover:border-primary'
-                  } bg-white/5 hover:bg-white/10`}>
-                    <div className="text-center">
-                      <i className="fa-solid fa-cloud-arrow-up text-3xl text-primary/50 mb-2"></i>
-                      <p className="text-white font-bold text-sm">Click to upload Team Logo</p>
-                      <p className="text-gray-500 text-xs">PNG, JPG up to 2MB</p>
-                    </div>
+            {(isFieldRequired('team_name') || isFieldRequired('team_tag')) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {isFieldRequired('team_name') && (
+                  <div>
+                    <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
+                      Team Name <span className="text-pink">*</span>
+                    </label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange('teamLogo', e.target.files[0])}
-                      className="hidden"
+                      type="text"
+                      value={formData.teamName}
+                      onChange={(e) => handleInputChange('teamName', e.target.value)}
+                      placeholder="e.g., Phoenix Warriors"
+                      className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
+                        formErrors.teamName ? 'border-pink' : 'border-white/10 focus:border-primary'
+                      }`}
                     />
-                  </label>
+                    {formErrors.teamName && (
+                      <p className="mt-1 text-xs text-pink font-bold">{formErrors.teamName}</p>
+                    )}
+                  </div>
+                )}
+
+                {isFieldRequired('team_tag') && (
+                  <div>
+                    <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
+                      Team Tag <span className="text-pink">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.teamTag}
+                      onChange={(e) => handleInputChange('teamTag', e.target.value.toUpperCase())}
+                      placeholder="e.g., PW"
+                      maxLength="10"
+                      className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
+                        formErrors.teamTag ? 'border-pink' : 'border-white/10 focus:border-primary'
+                      }`}
+                    />
+                    {formErrors.teamTag && (
+                      <p className="mt-1 text-xs text-pink font-bold">{formErrors.teamTag}</p>
+                    )}
+                  </div>
                 )}
               </div>
-              {formErrors.teamLogo && (
-                <p className="mt-1 text-xs text-pink font-bold">{formErrors.teamLogo}</p>
-              )}
-            </div>
+            )}
+
+            {isFieldRequired('team_logo') && (
+              <div>
+                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
+                  Team Logo <span className="text-pink">*</span>
+                </label>
+                <div className="relative">
+                  {formData.teamLogoPreview ? (
+                    <div className="relative w-full h-48 bg-white/5 rounded-lg border border-white/10 overflow-hidden flex items-center justify-center">
+                      <img src={formData.teamLogoPreview} alt="Team Logo Preview" className="max-h-full max-w-full object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('teamLogo', null)}
+                        className="absolute top-2 right-2 bg-pink/20 hover:bg-pink/40 text-pink px-3 py-1 rounded text-xs font-bold"
+                      >
+                        REMOVE
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`w-full h-48 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-all ${
+                      formErrors.teamLogo ? 'border-pink' : 'border-white/20 hover:border-primary'
+                    } bg-white/5 hover:bg-white/10`}>
+                      <div className="text-center">
+                        <i className="fa-solid fa-cloud-arrow-up text-3xl text-primary/50 mb-2"></i>
+                        <p className="text-white font-bold text-sm">Click to upload Team Logo</p>
+                        <p className="text-gray-500 text-xs">PNG, JPG up to 2MB</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange('teamLogo', e.target.files[0])}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+                {formErrors.teamLogo && (
+                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.teamLogo}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -348,41 +365,45 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
               <p className="text-sm text-gray-400">Information about the team manager/captain</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                Full Real Name <span className="text-pink">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.managerFullName}
-                onChange={(e) => handleInputChange('managerFullName', e.target.value)}
-                placeholder="e.g., John Doe"
-                className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                  formErrors.managerFullName ? 'border-pink' : 'border-white/10 focus:border-primary'
-                }`}
-              />
-              {formErrors.managerFullName && (
-                <p className="mt-1 text-xs text-pink font-bold">{formErrors.managerFullName}</p>
-              )}
-            </div>
+            {isFieldRequired('manager_name') && (
+              <div>
+                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
+                  Full Real Name <span className="text-pink">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.managerFullName}
+                  onChange={(e) => handleInputChange('managerFullName', e.target.value)}
+                  placeholder="e.g., John Doe"
+                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
+                    formErrors.managerFullName ? 'border-pink' : 'border-white/10 focus:border-primary'
+                  }`}
+                />
+                {formErrors.managerFullName && (
+                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.managerFullName}</p>
+                )}
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                Contact Number <span className="text-pink">*</span>
-              </label>
-              <input
-                type="tel"
-                value={formData.managerContactNumber}
-                onChange={(e) => handleInputChange('managerContactNumber', e.target.value)}
-                placeholder="+977 9800000000 or 9800000000"
-                className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                  formErrors.managerContactNumber ? 'border-pink' : 'border-white/10 focus:border-primary'
-                }`}
-              />
-              {formErrors.managerContactNumber && (
-                <p className="mt-1 text-xs text-pink font-bold">{formErrors.managerContactNumber}</p>
-              )}
-            </div>
+            {isFieldRequired('manager_contact') && (
+              <div>
+                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
+                  Contact Number <span className="text-pink">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={formData.managerContactNumber}
+                  onChange={(e) => handleInputChange('managerContactNumber', e.target.value)}
+                  placeholder="+977 9800000000 or 9800000000"
+                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
+                    formErrors.managerContactNumber ? 'border-pink' : 'border-white/10 focus:border-primary'
+                  }`}
+                />
+                {formErrors.managerContactNumber && (
+                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.managerContactNumber}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -405,80 +426,88 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
                   <h3 className="font-orbitron font-bold text-white">Player {index + 1}</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                      Full Real Name <span className="text-pink">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={player.fullName}
-                      onChange={(e) => handlePlayerChange(index, 'fullName', e.target.value)}
-                      placeholder="Player name"
-                      className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                        formErrors[`player_${index}_name`] ? 'border-pink' : 'border-white/10 focus:border-primary'
-                      }`}
-                    />
-                    {formErrors[`player_${index}_name`] && (
-                      <p className="mt-1 text-xs text-pink font-bold">{formErrors[`player_${index}_name`]}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                      Game UID <span className="text-pink">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={player.uid}
-                      onChange={(e) => handlePlayerChange(index, 'uid', e.target.value)}
-                      placeholder="Player UID/ID"
-                      className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                        formErrors[`player_${index}_uid`] ? 'border-pink' : 'border-white/10 focus:border-primary'
-                      }`}
-                    />
-                    {formErrors[`player_${index}_uid`] && (
-                      <p className="mt-1 text-xs text-pink font-bold">{formErrors[`player_${index}_uid`]}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                    Citizenship Photo <span className="text-pink">*</span>
-                  </label>
-                  {player.citizenshipPhotoPreview ? (
-                    <div className="relative w-full h-40 bg-white/5 rounded-lg border border-white/10 overflow-hidden flex items-center justify-center">
-                      <img src={player.citizenshipPhotoPreview} alt="Citizenship Photo" className="max-h-full max-w-full object-contain" />
-                      <button
-                        type="button"
-                        onClick={() => handlePlayerChange(index, 'citizenshipPhoto', null)}
-                        className="absolute top-2 right-2 bg-pink/20 hover:bg-pink/40 text-pink px-3 py-1 rounded text-xs font-bold"
-                      >
-                        REMOVE
-                      </button>
-                    </div>
-                  ) : (
-                    <label className={`w-full h-40 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-all ${
-                      formErrors[`player_${index}_photo`] ? 'border-pink' : 'border-white/20 hover:border-primary'
-                    } bg-white/5 hover:bg-white/10`}>
-                      <div className="text-center">
-                        <i className="fa-solid fa-id-card text-2xl text-primary/50 mb-2"></i>
-                        <p className="text-white font-bold text-sm">Upload Citizenship Photo</p>
-                        <p className="text-gray-500 text-xs">PNG, JPG up to 2MB</p>
+                {(isFieldRequired('player_name') || isFieldRequired('player_uid')) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {isFieldRequired('player_name') && (
+                      <div>
+                        <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
+                          Full Real Name <span className="text-pink">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={player.fullName}
+                          onChange={(e) => handlePlayerChange(index, 'fullName', e.target.value)}
+                          placeholder="Player name"
+                          className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
+                            formErrors[`player_${index}_name`] ? 'border-pink' : 'border-white/10 focus:border-primary'
+                          }`}
+                        />
+                        {formErrors[`player_${index}_name`] && (
+                          <p className="mt-1 text-xs text-pink font-bold">{formErrors[`player_${index}_name`]}</p>
+                        )}
                       </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handlePlayerFileChange(index, e.target.files[0])}
-                        className="hidden"
-                      />
+                    )}
+
+                    {isFieldRequired('player_uid') && (
+                      <div>
+                        <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
+                          Game UID <span className="text-pink">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={player.uid}
+                          onChange={(e) => handlePlayerChange(index, 'uid', e.target.value)}
+                          placeholder="Player UID/ID"
+                          className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
+                            formErrors[`player_${index}_uid`] ? 'border-pink' : 'border-white/10 focus:border-primary'
+                          }`}
+                        />
+                        {formErrors[`player_${index}_uid`] && (
+                          <p className="mt-1 text-xs text-pink font-bold">{formErrors[`player_${index}_uid`]}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isFieldRequired('citizenship_photo') && (
+                  <div>
+                    <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
+                      Citizenship Photo <span className="text-pink">*</span>
                     </label>
-                  )}
-                  {formErrors[`player_${index}_photo`] && (
-                    <p className="mt-1 text-xs text-pink font-bold">{formErrors[`player_${index}_photo`]}</p>
-                  )}
-                </div>
+                    {player.citizenshipPhotoPreview ? (
+                      <div className="relative w-full h-40 bg-white/5 rounded-lg border border-white/10 overflow-hidden flex items-center justify-center">
+                        <img src={player.citizenshipPhotoPreview} alt="Citizenship Photo" className="max-h-full max-w-full object-contain" />
+                        <button
+                          type="button"
+                          onClick={() => handlePlayerChange(index, 'citizenshipPhoto', null)}
+                          className="absolute top-2 right-2 bg-pink/20 hover:bg-pink/40 text-pink px-3 py-1 rounded text-xs font-bold"
+                        >
+                          REMOVE
+                        </button>
+                      </div>
+                    ) : (
+                      <label className={`w-full h-40 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-all ${
+                        formErrors[`player_${index}_photo`] ? 'border-pink' : 'border-white/20 hover:border-primary'
+                      } bg-white/5 hover:bg-white/10`}>
+                        <div className="text-center">
+                          <i className="fa-solid fa-id-card text-2xl text-primary/50 mb-2"></i>
+                          <p className="text-white font-bold text-sm">Upload Citizenship Photo</p>
+                          <p className="text-gray-500 text-xs">PNG, JPG up to 2MB</p>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handlePlayerFileChange(index, e.target.files[0])}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                    {formErrors[`player_${index}_photo`] && (
+                      <p className="mt-1 text-xs text-pink font-bold">{formErrors[`player_${index}_photo`]}</p>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
 
