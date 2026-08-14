@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
+import ErrorBox from './ErrorBox.jsx';
 
 // Shown right after login when the user has no profile yet (or an incomplete one).
 // Collects the mandatory warrior credentials before they can use the platform.
@@ -73,6 +74,9 @@ const OnboardingModal = () => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+      {errorMsg && (
+        <ErrorBox message={errorMsg} onClose={() => setErrorMsg('')} type="error" />
+      )}
       <div
         className="glass w-full max-w-lg p-6 md:p-8 rounded-2xl border border-white/10 relative overflow-hidden my-8"
         style={{
@@ -152,12 +156,6 @@ const OnboardingModal = () => {
                 required
               />
             </div>
-
-            {errorMsg && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-red-400 text-sm font-medium">
-                {errorMsg}
-              </div>
-            )}
 
             <button
               type="submit"

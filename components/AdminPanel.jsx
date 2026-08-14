@@ -8,7 +8,6 @@ const AdminRequestsPanel = lazy(() => import('./AdminRequestsPanel'));
 import PlayerStatsAdmin from './PlayerStatsAdmin';
 import NotificationsAdmin from './NotificationsAdmin';
 import ErrorBox from './ErrorBox.jsx';
-
 const AdminPanel = ({
   tournaments, saveTournaments, refetchTournaments,
   leaderboard, saveLeaderboard,
@@ -1620,7 +1619,7 @@ const AdminPanel = ({
 
                 {errorBox && (
                   <div className="mt-4">
-                    <ErrorBox message={errorBox} onClose={() => setErrorBox(null)} />
+                    <ErrorBox message={errorBox} onClose={() => setErrorBox(null)} type="error" />
                   </div>
                 )}
 

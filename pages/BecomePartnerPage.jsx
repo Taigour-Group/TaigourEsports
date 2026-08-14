@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import ErrorBox from '../components/ErrorBox.jsx';
 
 const PARTNER_TYPES = [
   'Tournament Sponsor',
@@ -173,6 +174,12 @@ const BecomePartnerPage = () => {
 
   return (
     <div className="pt-20 md:pt-24 pb-16 min-h-screen bg-bg-dark font-rajdhani">
+      {error && (
+        <ErrorBox message={error} onClose={() => setError('')} type="error" />
+      )}
+      {success && (
+        <ErrorBox message={success} onClose={() => setSuccess('')} type="success" />
+      )}
       <div className="container mx-auto px-4">
         {/* Hero */}
         <section className="mb-12 md:mb-16">
@@ -233,13 +240,6 @@ const BecomePartnerPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 bg-bg-card rounded-3xl border border-white/10 p-6 md:p-8">
               <h2 className="text-xl md:text-2xl font-orbitron font-black text-white uppercase tracking-widest mb-4">Application Form</h2>
-
-              {error && (
-                <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm">{error}</div>
-              )}
-              {success && (
-                <div className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-200 text-sm">{success}</div>
-              )}
 
               <form onSubmit={onSubmit} className="space-y-4 md:space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

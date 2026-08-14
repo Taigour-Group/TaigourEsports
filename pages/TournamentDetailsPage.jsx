@@ -101,15 +101,17 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
           setErrorBox('Please sign in to complete registration and pay the entry fee.');
           setIsSubmitting(false);
           setQueueStatus(null);
+          closeModals(); // Close modal to make error box visible at top
           return;
         }
 
         const balRes = await fetch(`/api/balance/${user.id}`);
         if (!balRes.ok) {
           console.error('Failed to fetch balance for pre-check');
-          alert('Unable to verify wallet balance. Please try again later.');
+          setErrorBox('Unable to verify wallet balance. Please try again later.');
           setIsSubmitting(false);
           setQueueStatus(null);
+          closeModals(); // Close modal to make error box visible at top
           return;
         }
         const balData = await balRes.json();
@@ -118,6 +120,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
           setErrorBox(`Insufficient balance. Entry fee: ${fee} TGC. Your wallet: ${available} TGC.`);
           setIsSubmitting(false);
           setQueueStatus(null);
+          closeModals(); // Close modal to make error box visible at top
           return;
         }
       }
@@ -126,6 +129,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
       setErrorBox('Unable to verify balance. Try again later.');
       setIsSubmitting(false);
       setQueueStatus(null);
+      closeModals(); // Close modal to make error box visible at top
       return;
     }
 
@@ -288,9 +292,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
   return (
     <div className="pt-24 md:pt-32 pb-24 bg-bg-dark min-h-screen relative">
       {errorBox && (
-        <div className="container mx-auto px-4">
-          <ErrorBox message={errorBox} onClose={() => setErrorBox(null)} />
-        </div>
+        <ErrorBox message={errorBox} onClose={() => setErrorBox(null)} type="error" />
       )}
       {showToast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[2000] animate-slide-up w-[90%] max-w-sm">

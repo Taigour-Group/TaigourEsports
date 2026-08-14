@@ -429,7 +429,7 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
                       Game UID <span className="text-pink">*</span>
                     </label>
                     <input
-                      type="text"
+                      type="number"
                       value={player.uid}
                       onChange={(e) => handlePlayerChange(index, 'uid', e.target.value)}
                       placeholder="Player UID/ID"

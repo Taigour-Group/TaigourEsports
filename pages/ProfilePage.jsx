@@ -6,6 +6,7 @@ import PlayerBalance from '../components/PlayerBalance';
 import FadeContent from '../components/ReactBits/FadeContent';
 import BlurText from '../components/ReactBits/BlurText';
 import ShinyText from '../components/ReactBits/ShinyText';
+import ErrorBox from '../components/ErrorBox.jsx';
 
 const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
   const { user, profile, loading, loginWithGoogle, logout, reloadProfile } = useAuth();
@@ -145,7 +146,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
       full_name: formData.full_name.trim(),
       avatar_url: user.user_metadata?.avatar_url || '',
       age: ageNum,
-      game_uid: profile?.game_uid || '',
+      game_uid: formData.game_uid.trim() || '',
       rank: profile?.rank || 'UNRANKED',
       total_kills: profile?.total_kills || 0,
       combat_score: profile?.combat_score || 0,
@@ -176,6 +177,12 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
 
   return (
     <div className="pt-24 md:pt-32 pb-24 bg-bg-dark min-h-screen">
+      {errorMsg && (
+        <ErrorBox message={errorMsg} onClose={() => setErrorMsg('')} type="error" />
+      )}
+      {successMsg && (
+        <ErrorBox message={successMsg} onClose={() => setSuccessMsg('')} type="success" />
+      )}
       <div className="container mx-auto px-4 max-w-6xl">
 
         {/* ─── Profile Header / Hero ─── */}
@@ -459,20 +466,6 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                   </p>
                 </div>
 
-                {successMsg && (
-                  <div className="border text-xs font-semibold p-3.5 rounded-lg flex items-center gap-2.5 bg-green-950/20 border-green-500/35 text-green-400 animate-fade-in">
-                    <i className="fa-solid fa-circle-check"></i>
-                    <span>{successMsg}</span>
-                  </div>
-                )}
-
-                {errorMsg && (
-                  <div className="border text-xs font-semibold p-3.5 rounded-lg flex items-center gap-2.5 bg-red-950/20 border-red-500/35 text-red-400 animate-fade-in">
-                    <i className="fa-solid fa-circle-xmark"></i>
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-
                 <form onSubmit={handleUpdateProfile} className="space-y-5 font-rajdhani">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
@@ -511,9 +504,10 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                       <input
                         type="text"
                         name="game_uid"
-                        value={profile?.game_uid || 'Enter Your In-Game UID'}
-                        className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-gray-500 font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-sm"
-                        readOnly
+                        value={formData.game_uid}
+                        onChange={(e) => setFormData({ ...formData, game_uid: e.target.value })}
+                        placeholder="Enter Your In-Game UID"
+                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-sm"
                       />
                     </div>
 
