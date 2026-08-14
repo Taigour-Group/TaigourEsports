@@ -1206,7 +1206,7 @@ async function processRegistrationQueue() {
 
     const { data: tournament, error: tourneyErr } = await supabase
       .from('tournaments')
-      .select('id, title, entry_fee, registration_start_date, registration_end_date, login_required, payment_method, team_size, max_slots')
+      .select('id, title, entry_fee, registration_start_date, registration_end_date, login_required, payment_method, team_size, max_slots, registration_fields')
       .eq('id', tournament_id)
       .single();
 
@@ -1228,10 +1228,17 @@ async function processRegistrationQueue() {
       throw new Error(`This tournament strictly requires exactly ${requiredTeamSize} players.`);
     }
 
+    const fieldConfig = getTournamentRegistrationFields(tournament);
     const fieldErrors = validateTournamentRegistrationPayload({ team_name, team_tag, team_logo, manager_name, manager_contact, registrar_email, players }, tournament);
     if (fieldErrors.length > 0) {
       throw new Error(fieldErrors[0]);
     }
+
+    const normalizedTeamName = fieldConfig.team_name ? String(team_name || '').trim() : '';
+    const normalizedTeamTag = fieldConfig.team_tag ? String(team_tag || '').trim() : '';
+    const normalizedManagerName = fieldConfig.manager_name ? String(manager_name || '').trim() : '';
+    const normalizedManagerContact = fieldConfig.manager_contact ? String(manager_contact || '').trim() : '';
+    const normalizedRegistrarEmail = fieldConfig.registrant_email ? String(registrar_email || '').trim() : '';
 
     const now = new Date();
     const registrationStart = parseDateAtStartOfDay(tournament.registration_start_date);
@@ -1250,8 +1257,12 @@ async function processRegistrationQueue() {
         tournamenttitle: tournament.title || 'NA',
         registrationdate: nowISO,
         tournament_id: String(tournament_id),
-        team_name, team_tag, team_logo: team_logo || null,
-        manager_name, manager_contact, registrar_email,
+        team_name: normalizedTeamName,
+        team_tag: normalizedTeamTag,
+        team_logo: team_logo || null,
+        manager_name: normalizedManagerName,
+        manager_contact: normalizedManagerContact,
+        registrar_email: normalizedRegistrarEmail,
         total_players: players.length,
         payment_method: tournament.payment_method || 'tgc_coin',
         payment_status: 'pending',
@@ -1264,9 +1275,9 @@ async function processRegistrationQueue() {
 
     const playerRecords = players.map(p => ({
       team_registration_id: teamReg.id,
-      player_name: p.player_name,
-      player_uid: p.player_uid,
-      player_citizenship_photo: p.player_citizenship_photo
+      player_name: fieldConfig.player_name ? String(p.player_name || '').trim() : '',
+      player_uid: fieldConfig.player_uid ? String(p.player_uid || '').trim() : '',
+      player_citizenship_photo: fieldConfig.citizenship_photo ? String(p.player_citizenship_photo || '').trim() : ''
     }));
 
     const { error: playersErr } = await supabase.from('team_players').insert(playerRecords);
