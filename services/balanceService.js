@@ -1,3 +1,5 @@
+import { adminFetch } from './adminAuth';
+
 class BalanceService {
   // Get player balance and membership info
   async getPlayerBalance(userId) {
@@ -28,8 +30,8 @@ class BalanceService {
   // Admin: Get all wallets + profiles + memberships
   async getAllPlayerBalances(limit = 100, offset = 0) {
     try {
-      const response = await fetch(`/api/admin/wallets?limit=${limit}&offset=${offset}`);
-      const result = await response.json();
+      const response = await adminFetch(`/api/admin/wallets?limit=${limit}&offset=${offset}`);
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Failed to fetch admin wallets');
 
       const rows = (result?.data || []).map(r => ({
@@ -53,12 +55,12 @@ class BalanceService {
   // Admin: Update player balance directly via secure backend API
   async adminUpdateBalance(userId, newBalance, reason = 'Admin adjustment') {
     try {
-      const response = await fetch(`/api/admin/player/${userId}/balance`, {
+      const response = await adminFetch(`/api/admin/player/${userId}/balance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newBalance, reason })
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Failed to update balance');
       return { data: result.data };
     } catch (error) {
@@ -70,12 +72,12 @@ class BalanceService {
   // Admin: Update membership via secure backend API
   async adminUpdateMembership(userId, membershipTier, durationDays = 30) {
     try {
-      const response = await fetch(`/api/admin/player/${userId}/membership`, {
+      const response = await adminFetch(`/api/admin/player/${userId}/membership`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ membershipTier, durationDays })
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Failed to update membership');
       return { data: result.data };
     } catch (error) {
@@ -87,12 +89,12 @@ class BalanceService {
   // Admin: Update player profile stats via secure backend API
   async adminUpdatePlayerStats(userId, profileUpdates) {
     try {
-      const response = await fetch(`/api/admin/player/${userId}/stats`, {
+      const response = await adminFetch(`/api/admin/player/${userId}/stats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profileUpdates)
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Failed to update stats');
       return { data: result.data };
     } catch (error) {

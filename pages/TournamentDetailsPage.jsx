@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { CountdownTimer, FeeTooltip } from './TournamentsPage';
 import TeamRegistrationForm from '../components/TeamRegistrationForm.jsx';
 import { dbService } from '../services/dbService.js';
+import ErrorBox from '../components/ErrorBox.jsx';
 import FadeContent from '../components/ReactBits/FadeContent';
 import BlurText from '../components/ReactBits/BlurText';
 import ShinyText from '../components/ReactBits/ShinyText';
@@ -23,6 +24,14 @@ const parseDateAtEndOfDay = (dateValue) => {
   if (Number.isNaN(parsed.getTime())) return null;
   parsed.setHours(23, 59, 59, 999);
   return parsed;
+};
+
+const parseAmountClient = (value) => {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return value;
+  const cleaned = String(value).replace(/[^\d.]/g, '');
+  const num = Number(cleaned);
+  return Number.isFinite(num) ? num : 0;
 };
 
 const formatDateLabel = (dateValue) => {
@@ -48,6 +57,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
   const [showToast, setShowToast] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [queueStatus, setQueueStatus] = useState(null);
+  const [errorBox, setErrorBox] = useState(null);
 
   const touchStart = useRef(null);
   const touchEnd = useRef(null);
@@ -83,6 +93,42 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
     setIsSubmitting(true);
     setQueueStatus({ status: 'uploading', message: 'Encrypting and uploading dossiers...' });
     
+    // Pre-check balance when entry fee is required to avoid wasting uploads
+    try {
+      const fee = parseAmountClient(tournament.entry_fee || 0);
+      if ((tournament.payment_method || 'tgc_coin') === 'tgc_coin' && fee > 0) {
+        if (!user || !user.id) {
+          setErrorBox('Please sign in to complete registration and pay the entry fee.');
+          setIsSubmitting(false);
+          setQueueStatus(null);
+          return;
+        }
+
+        const balRes = await fetch(`/api/balance/${user.id}`);
+        if (!balRes.ok) {
+          console.error('Failed to fetch balance for pre-check');
+          alert('Unable to verify wallet balance. Please try again later.');
+          setIsSubmitting(false);
+          setQueueStatus(null);
+          return;
+        }
+        const balData = await balRes.json();
+        const available = Number(balData.balance ?? balData.available_balance ?? 0);
+        if (available < fee) {
+          setErrorBox(`Insufficient balance. Entry fee: ${fee} TGC. Your wallet: ${available} TGC.`);
+          setIsSubmitting(false);
+          setQueueStatus(null);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Pre-check failed', e);
+      setErrorBox('Unable to verify balance. Try again later.');
+      setIsSubmitting(false);
+      setQueueStatus(null);
+      return;
+    }
+
     try {
       // 1. Upload files if provided
       let teamLogoUrl = null;
@@ -151,7 +197,13 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
             }, 3000);
           } else if (statusData.status === 'failed') {
             clearInterval(pollInterval);
-            throw new Error(statusData.error || 'Registration failed during processing');
+            // Surface worker error to UI
+            const msg = statusData.error || 'Registration failed during processing';
+            setErrorBox(msg);
+            setIsSubmitting(false);
+            setQueueStatus(null);
+            // stop polling
+            return;
           }
         } catch (pollErr) {
           console.error('Polling error:', pollErr);
@@ -165,7 +217,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
 
     } catch (error) {
       console.error('Registration failed:', error);
-      alert(`Registration error: ${error.message}`);
+      setErrorBox(`Registration error: ${error.message}`);
       setIsSubmitting(false);
       setQueueStatus(null);
     }
@@ -235,6 +287,11 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
 
   return (
     <div className="pt-24 md:pt-32 pb-24 bg-bg-dark min-h-screen relative">
+      {errorBox && (
+        <div className="container mx-auto px-4">
+          <ErrorBox message={errorBox} onClose={() => setErrorBox(null)} />
+        </div>
+      )}
       {showToast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[2000] animate-slide-up w-[90%] max-w-sm">
           <div className="bg-tertiary/20 backdrop-blur-xl border border-tertiary/50 px-6 py-4 rounded-2xl shadow-[0_0_30px_rgba(0,255,128,0.3)] flex items-center gap-4">

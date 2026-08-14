@@ -7,6 +7,7 @@ import { hydrateCatalogFromSupabase } from '../constants/balanceConstants';
 const AdminRequestsPanel = lazy(() => import('./AdminRequestsPanel'));
 import PlayerStatsAdmin from './PlayerStatsAdmin';
 import NotificationsAdmin from './NotificationsAdmin';
+import ErrorBox from './ErrorBox.jsx';
 
 const AdminPanel = ({
   tournaments, saveTournaments, refetchTournaments,
@@ -27,6 +28,7 @@ const AdminPanel = ({
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const [editRegForm, setEditRegForm] = useState({});
   const [savingReg, setSavingReg] = useState(false);
+  const [errorBox, setErrorBox] = useState(null);
   const [catalogMode, setCatalogMode] = useState('membership');
   const [membershipItems, setMembershipItems] = useState([]);
   const [rechargeItems, setRechargeItems] = useState([]);
@@ -117,6 +119,7 @@ const AdminPanel = ({
       setTeamPlayers([]);
       setEditRegForm({});
     }
+    setErrorBox(null);
   }, [viewingReg]);
 
   const saveRegistrationChanges = async () => {
@@ -146,10 +149,11 @@ const AdminPanel = ({
       const saved = result.data || { ...viewingReg, ...editRegForm };
       await saveRegistrations(registrations.map(r => r.id === viewingReg.id ? saved : r));
       setViewingReg(null);
-      alert('Registration updated successfully!');
+      // success - clear any errors
+      setErrorBox(null);
     } catch (error) {
       console.error('Save registration failed:', error);
-      alert('Failed to update registration: ' + error.message);
+      setErrorBox('Failed to update registration: ' + error.message);
     } finally {
       setSavingReg(false);
     }
@@ -1603,6 +1607,8 @@ const AdminPanel = ({
                       <option className='bg-black' value="pending">Pending</option>
                       <option className='bg-black' value="completed">Completed</option>
                       <option className='bg-black' value="failed">Failed</option>
+                      <option className='bg-black' value="refunded">Refunded</option>
+                      <option className='bg-black' value="cancelled">Cancelled</option>
                     </select>
                   </div>
                 </div>
@@ -1611,6 +1617,12 @@ const AdminPanel = ({
                   <label className="block text-sm font-bold text-gray-400 mb-2">Admin Notes</label>
                   <textarea value={editRegForm.notes || ''} onChange={(e) => setEditRegForm({...editRegForm, notes: e.target.value})} rows={3} placeholder="Internal notes about this registration..." className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary resize-none" />
                 </div>
+
+                {errorBox && (
+                  <div className="mt-4">
+                    <ErrorBox message={errorBox} onClose={() => setErrorBox(null)} />
+                  </div>
+                )}
 
                 {/* Read-only Info */}
                 <div className="p-4 bg-white/2 border border-white/5 rounded-xl space-y-2 mt-4">

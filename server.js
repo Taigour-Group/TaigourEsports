@@ -29,6 +29,7 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+const PLATFORM_WALLET_ID = process.env.PLATFORM_WALLET_ID || null;
 
 // --- Wallet helpers (wallet_id === profiles.player_id) ---
 async function getPlayerIdForUserId(userId) {
@@ -1240,6 +1241,58 @@ async function processRegistrationQueue() {
       throw new Error('Failed to register players');
     }
 
+    // Handle entry fee (TGC coin) if configured
+    try {
+      const fee = parseAmount(tournament.entry_fee || 0);
+      if ((tournament.payment_method || 'tgc_coin') === 'tgc_coin' && fee > 0) {
+        // Attempt to find the payer's player_id via registrar_email (auto-filled when logged in)
+        const registrarEmail = (registrar_email || manager_contact || registrar_email) || teamReg.registrar_email || null;
+        let payerProfile = null;
+        if (registrarEmail) {
+          const { data: pRow } = await supabase.from('profiles').select('player_id, id').ilike('email', registrarEmail).maybeSingle();
+          payerProfile = pRow || null;
+        }
+
+        if (!payerProfile || !payerProfile.player_id) {
+          // Rollback registration
+          await supabase.from('team_players').delete().eq('team_registration_id', teamReg.id);
+          await supabase.from('registrations').delete().eq('id', teamReg.id);
+          throw new Error('Player profile not found for registrar email; cannot charge entry fee');
+        }
+
+        if (!PLATFORM_WALLET_ID) {
+          // Rollback registration
+          await supabase.from('team_players').delete().eq('team_registration_id', teamReg.id);
+          await supabase.from('registrations').delete().eq('id', teamReg.id);
+          throw new Error('Platform wallet not configured; contact administrator');
+        }
+
+        const idempotencyKey = `team_reg:${teamReg.id}`;
+        const { data: txId, error: txErr } = await supabase.rpc('wallet_transfer', {
+          p_from_wallet_id: payerProfile.player_id,
+          p_to_wallet_id: PLATFORM_WALLET_ID,
+          p_amount: fee,
+          p_idempotency_key: idempotencyKey,
+          p_reference_id: teamReg.id,
+          p_description: `Tournament entry fee: ${tournament.title || tournament.id}`,
+          p_actor_user_id: payerProfile.id
+        });
+
+        if (txErr) {
+          // If insufficient funds, return clear error to client
+          const msg = (txErr.message || '').toLowerCase().includes('insufficient') ? 'Insufficient balance.' : (txErr.message || 'Failed to charge entry fee');
+          await supabase.from('team_players').delete().eq('team_registration_id', teamReg.id);
+          await supabase.from('registrations').delete().eq('id', teamReg.id);
+          throw new Error(msg);
+        }
+
+        // Mark payment as completed
+        await supabase.from('registrations').update({ payment_status: 'completed', payment_reference_id: txId, updated_at: new Date().toISOString() }).eq('id', teamReg.id);
+      }
+    } catch (feeErr) {
+      throw feeErr;
+    }
+
     registrationStatus.set(task.ticket_id, { 
       status: 'success', 
       registration_id: teamReg.id,
@@ -1394,13 +1447,22 @@ app.put('/api/admin/team-registrations/:id', requireAdminRole, async (req, res) 
     const { id } = req.params;
     const { payment_status, notes } = req.body;
 
+    // Fetch existing registration to detect status changes
+    const { data: existing, error: fetchErr } = await supabase.from('registrations').select('*').eq('id', id).maybeSingle();
+    if (fetchErr) {
+      console.error('Error fetching existing registration:', fetchErr);
+      return res.status(500).json({ error: fetchErr.message });
+    }
+
+    const updatedPayload = {
+      payment_status: payment_status || undefined,
+      notes: notes || undefined,
+      updated_at: new Date().toISOString()
+    };
+
     const { data, error } = await supabase
       .from('registrations')
-      .update({
-        payment_status: payment_status || undefined,
-        notes: notes || undefined,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatedPayload)
       .eq('id', id)
       .select()
       .single();
@@ -1408,6 +1470,50 @@ app.put('/api/admin/team-registrations/:id', requireAdminRole, async (req, res) 
     if (error) {
       console.error('Error updating team registration:', error);
       return res.status(500).json({ error: error.message });
+    }
+
+    // If admin transitioned a completed payment to a refund/cancel state, attempt to refund
+    const prevStatus = existing?.payment_status || 'pending';
+    const newStatus = payment_status || prevStatus;
+    const refundStates = new Set(['refunded', 'cancelled', 'failed', 'reversed']);
+
+    if (prevStatus === 'completed' && refundStates.has(newStatus)) {
+      try {
+        // Determine fee from tournament
+        const { data: tourney, error: tErr } = await supabase.from('tournaments').select('id, title, entry_fee').eq('id', existing.tournament_id).maybeSingle();
+        if (tErr) throw tErr;
+        const fee = parseAmount(tourney?.entry_fee || 0);
+
+        // Find payer profile by registrar_email
+        const registrarEmail = existing.registrar_email || null;
+        const { data: payerProfile } = await supabase.from('profiles').select('player_id, id').ilike('email', registrarEmail).maybeSingle();
+
+        if (!payerProfile || !payerProfile.player_id) {
+          console.error('Refund failed: payer profile not found for', registrarEmail);
+        } else if (!PLATFORM_WALLET_ID) {
+          console.error('Refund failed: PLATFORM_WALLET_ID not configured');
+        } else if (fee > 0) {
+          const idempotencyKey = `refund:${id}:${Date.now()}`;
+          const { data: txId, error: txErr } = await supabase.rpc('wallet_transfer', {
+            p_from_wallet_id: PLATFORM_WALLET_ID,
+            p_to_wallet_id: payerProfile.player_id,
+            p_amount: fee,
+            p_idempotency_key: idempotencyKey,
+            p_reference_id: id,
+            p_description: `Refund: Tournament entry fee ${tourney?.title || ''}`,
+            p_actor_user_id: req.admin?.user_uuid || null
+          });
+
+          if (txErr) {
+            console.error('Refund RPC failed:', txErr);
+          } else {
+            // annotate payment_reference_id with refund tx id
+            await supabase.from('registrations').update({ notes: (data.notes || '') + `\nRefundTx:${txId}`, updated_at: new Date().toISOString() }).eq('id', id);
+          }
+        }
+      } catch (refundErr) {
+        console.error('Error attempting refund:', refundErr);
+      }
     }
 
     res.json(data);
@@ -2269,24 +2375,73 @@ app.post('/api/admin/registrations/add', requireAdminRole, async (req, res) => {
 app.put('/api/admin/registrations/:id', requireAdminRole, async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedRegistration = req.body;
+    const { payment_status, notes } = req.body;
+
+    // Fetch existing registration row to detect status changes
+    const { data: existing, error: fetchErr } = await supabase.from('registrations').select('*').eq('id', id).maybeSingle();
+    if (fetchErr) {
+      console.error('Error fetching registration for update:', fetchErr);
+      return res.status(500).json({ error: fetchErr.message });
+    }
+
+    const updatedPayload = {
+      ...req.body,
+      updated_at: new Date().toISOString()
+    };
 
     const { data, error } = await supabase
       .from('registrations')
-      .update(updatedRegistration)
+      .update(updatedPayload)
       .eq('id', id)
-      .select();
+      .select()
+      .single();
 
     if (error) {
       console.error('Error updating registration:', error);
       return res.status(500).json({ error: error.message });
     }
 
-    if (!data || data.length === 0) {
-      return res.status(404).json({ error: 'Registration not found' });
+    // If transitioning from completed -> refunded/cancelled, attempt refund
+    const prevStatus = existing?.payment_status || 'pending';
+    const newStatus = payment_status || prevStatus;
+    const refundStates = new Set(['refunded', 'cancelled', 'failed', 'reversed']);
+
+    if (prevStatus === 'completed' && refundStates.has(newStatus)) {
+      try {
+        const { data: tourney } = await supabase.from('tournaments').select('id, title, entry_fee').eq('id', existing.tournament_id).maybeSingle();
+        const fee = parseAmount(tourney?.entry_fee || 0);
+
+        const registrarEmail = existing.registrar_email || null;
+        const { data: payerProfile } = await supabase.from('profiles').select('player_id, id').ilike('email', registrarEmail).maybeSingle();
+
+        if (!payerProfile || !payerProfile.player_id) {
+          console.error('Refund failed: payer profile not found for', registrarEmail);
+        } else if (!PLATFORM_WALLET_ID) {
+          console.error('Refund failed: PLATFORM_WALLET_ID not configured');
+        } else if (fee > 0) {
+          const idempotencyKey = `refund:${id}:${Date.now()}`;
+          const { data: txId, error: txErr } = await supabase.rpc('wallet_transfer', {
+            p_from_wallet_id: PLATFORM_WALLET_ID,
+            p_to_wallet_id: payerProfile.player_id,
+            p_amount: fee,
+            p_idempotency_key: idempotencyKey,
+            p_reference_id: id,
+            p_description: `Refund: Tournament entry fee ${tourney?.title || ''}`,
+            p_actor_user_id: req.admin?.user_uuid || null
+          });
+
+          if (txErr) {
+            console.error('Refund RPC failed:', txErr);
+          } else {
+            await supabase.from('registrations').update({ notes: (data.notes || '') + `\nRefundTx:${txId}`, updated_at: new Date().toISOString() }).eq('id', id);
+          }
+        }
+      } catch (refundErr) {
+        console.error('Error attempting refund:', refundErr);
+      }
     }
 
-    res.json({ success: true, message: 'Registration updated', data: data[0] });
+    res.json({ success: true, message: 'Registration updated', data });
   } catch (error) {
     console.error('Error updating registration:', error);
     res.status(500).json({ error: 'Failed to update registration' });

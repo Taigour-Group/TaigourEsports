@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ErrorBox from './ErrorBox.jsx';
 import { balanceService } from '../services/balanceService';
 import { MEMBERSHIP_BENEFITS, MEMBERSHIP_TIERS, RECHARGE_PACKAGES, ADMIN_WHATSAPP, REQUEST_TYPES, REQUEST_STATUS } from '../constants/balanceConstants';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,8 @@ const PlayerBalance = () => {
   const [catalogRechargePackages, setCatalogRechargePackages] = useState(RECHARGE_PACKAGES);
   const [transferForm, setTransferForm] = useState({ to_player_id: '', amount: '' });
   const [transferLoading, setTransferLoading] = useState(false);
+  const [errorBox, setErrorBox] = useState(null);
+  const [successBox, setSuccessBox] = useState(null);
   const [requestInfo, setRequestInfo] = useState({
     whatsapp_number: '',
     payment_method: 'esewa',
@@ -87,7 +90,8 @@ const PlayerBalance = () => {
   const submitRechargeRequest = async () => {
     if (!selectedPackage || !user) return;
     if (!requestInfo.whatsapp_number || !requestInfo.payment_account_number || !requestInfo.payment_account_owner || !requestInfo.players_id) {
-      return alert('Please enter WhatsApp number, payment account number, and owner name.');
+      setErrorBox('Please enter WhatsApp number, payment account number, and owner name.');
+      return;
     }
     
     try {
@@ -115,19 +119,20 @@ const PlayerBalance = () => {
 
       if (!response.ok) throw new Error('Failed to submit request');
 
-      alert('Request submitted!\n\nPlease contact us on WhatsApp to confirm payment.\nOur admin will verify and add your balance shortly.');
+      setSuccessBox('Request submitted! Please contact us on WhatsApp to confirm payment. Our admin will verify and add your balance shortly.');
       setShowRechargeModal(false);
       setSelectedPackage(null);
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to submit request. Please try again.');
+      setErrorBox('Failed to submit request. Please try again.');
     }
   };
 
   const submitMembershipRequest = async () => {
     if (!selectedMembership || !user) return;
     if (!requestInfo.whatsapp_number || !requestInfo.payment_account_number || !requestInfo.payment_account_owner || !requestInfo.players_id) {
-      return alert('Please enter WhatsApp number, payment account number, and owner name.');
+      setErrorBox('Please enter WhatsApp number, payment account number, and owner name.');
+      return;
     }
 
     try {
@@ -153,12 +158,12 @@ const PlayerBalance = () => {
 
       if (!response.ok) throw new Error('Failed to submit request');
 
-      alert(`✓ Request submitted!\n\nPlease contact us on WhatsApp to confirm payment.\nOur admin will verify and activate ${MEMBERSHIP_BENEFITS[selectedMembership].name} for you shortly.`);
+      setSuccessBox(`Request submitted! Please contact us on WhatsApp to confirm payment. Our admin will verify and activate ${MEMBERSHIP_BENEFITS[selectedMembership].name} for you shortly.`);
       setShowMembershipModal(false);
       setSelectedMembership(null);
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to submit request. Please try again.');
+      setErrorBox('Failed to submit request. Please try again.');
     }
   };
 
@@ -181,9 +186,18 @@ const PlayerBalance = () => {
     const toPlayerId = (transferForm.to_player_id || '').trim();
     const amt = Number(transferForm.amount);
 
-    if (!fromPlayerId) return alert('Your Player ID is missing. Please update your profile first.');
-    if (!toPlayerId) return alert('Receiver Player ID is required.');
-    if (!Number.isFinite(amt) || amt <= 0) return alert('Enter a valid amount.');
+    if (!fromPlayerId) {
+      setErrorBox('Your Player ID is missing. Please update your profile first.');
+      return;
+    }
+    if (!toPlayerId) {
+      setErrorBox('Receiver Player ID is required.');
+      return;
+    }
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setErrorBox('Enter a valid amount.');
+      return;
+    }
 
     setTransferLoading(true);
     try {
@@ -201,13 +215,13 @@ const PlayerBalance = () => {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Transfer failed');
 
-      alert('Transfer successful!');
+      setSuccessBox('Transfer successful!');
       setTransferForm({ to_player_id: '', amount: '' });
       await fetchBalance();
       if (activeTab === 'history') await fetchHistory();
     } catch (e) {
       console.error(e);
-      alert(e.message || 'Transfer failed');
+      setErrorBox(e.message || 'Transfer failed');
     } finally {
       setTransferLoading(false);
     }
@@ -224,6 +238,12 @@ const PlayerBalance = () => {
 
   return (
     <div className="space-y-6">
+      {errorBox && (
+        <ErrorBox message={errorBox} onClose={() => setErrorBox(null)} type="error" />
+      )}
+      {successBox && (
+        <ErrorBox message={successBox} onClose={() => setSuccessBox(null)} type="success" />
+      )}
       {/* Main Balance Card */}
       <div className="bg-gradient-to-br from-primary/20 to-pink/10 border border-primary/30 rounded-2xl p-3 md:p-5">
         <div className="flex justify-between items-start mb-4">
