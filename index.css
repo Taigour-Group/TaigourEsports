@@ -1,0 +1,185 @@
+html, body {
+  background-color: #0B0F14;
+  color: #F8FAFC;
+  font-family: 'Manrope', sans-serif;
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Base Headings */
+h1, h2, h3, h4, h5, h6, .font-space {
+  font-family: 'Barlow', sans-serif;
+}
+
+/* Premium Minimal Cards */
+.glass {
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bottom-nav-glass {
+  background: rgba(11, 15, 20, 0.85);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Clean UI borders */
+.clean-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+.clean-border:hover {
+  border-color: rgba(59, 217, 242, 0.5); /* Cyan */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Minimal Button */
+.premium-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 8px;
+}
+.premium-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+#tournaments a,
+#games a,
+#news a {
+  border-radius: 6px;
+}
+
+#games a.group,
+#news a.group {
+  overflow: hidden;
+}
+
+.cut-corner-card {
+  clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.cut-corner-button {
+  clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+/* Scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+.no-scrollbar::-webkit-scrollbar-track {
+  display: none;
+}
+.no-scrollbar::-webkit-scrollbar-thumb {
+  display: none;
+}
+
+/* Carousel specific scrollbar hiding */
+.overflow-x-auto {
+  /* Keep horizontal scrolling functional, but don't force-hide scrollbar globally */
+  -ms-overflow-style: auto !important;
+  scrollbar-width: auto !important;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  display: block !important;
+  height: 8px !important;
+}
+
+
+.custom-scrollbar::-webkit-scrollbar {
+  margin-top: 10px;
+  height: 5px;
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3e4962; /* Navy */
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sr-only {
+  position: absolute;
+  left: -9999px;
+}
+
+@media (max-width: 768px) {
+  html {
+    width: 100vw !important;
+    overflow-x: hidden !important;
+    overflow-x: clip !important;
+  }
+
+  body {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    overflow-x: clip !important;
+    position: relative;
+  }
+
+  /* Prevent any child from causing overflow */
+  main {
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Ensure all direct children of body fit within viewport */
+  body > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  /* Hide scrollbars on mobile completely */
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Carousel mobile fix - hide scrollbar but allow scrolling */
+  .overflow-x-auto {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none !important;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
