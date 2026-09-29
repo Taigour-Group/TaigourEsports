@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { TournamentCard } from './TournamentsPage';
 
 const heroImage = 'https://res.cloudinary.com/dkoirxf41/image/upload/v1790498570/Teal_Battlefield_Lion_Crest_Banner_sdlnat.png';
-const tigerLogo = 'https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png';
+const Logo = 'https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png';
 
 const parseDate = (value, endOfDay = false) => {
   if (!value) return null;
@@ -117,7 +117,7 @@ const HomePageRedesigned = ({ tournaments = [], registrations = [] }) => {
       </section>
 
       <section id="about" className="scroll-mt-16 relative overflow-hidden border-b border-white/10 bg-[#07131d] px-5 py-12 md:px-8 md:py-16">
-        <img src={tigerLogo} alt="" aria-hidden="true" className="pointer-events-none absolute -left-20 top-1/2 w-72 -translate-y-1/2 opacity-[.08] md:w-[30rem]" />
+        <img src={Logo} alt="" aria-hidden="true" className="pointer-events-none absolute -left-20 top-1/2 w-72 -translate-y-1/2 opacity-[.08] md:w-[30rem]" />
         <div className="container relative z-10 mx-auto grid max-w-7xl gap-8 md:grid-cols-[.8fr_1.2fr] md:items-center">
           <div><p className="mb-1 font-space text-[10px] font-bold uppercase tracking-wider text-cyan">Why Choose Taigour</p><h2 className="font-space text-2xl font-bold md:text-3xl">More Than Just Tournaments</h2><p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">We provide the most professional and reliable esports ecosystem in Nepal, built for players, by gamers.</p></div>
           <div className="grid grid-cols-2 gap-0 md:grid-cols-4">{[
@@ -163,7 +163,7 @@ const HomePageRedesigned = ({ tournaments = [], registrations = [] }) => {
               <span className="block">COMPETE</span>
               <span className="block text-white">GROW</span>
             </p>
-            <img src={tigerLogo} alt="Taigour E-Sports" loading="lazy" className="h-16 w-20 object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,.8)] sm:h-20 sm:w-24 md:h-28 md:w-32" />
+            <img src={Logo} alt="Taigour E-Sports" loading="lazy" className="h-16 w-20 object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,.8)] sm:h-20 sm:w-24 md:h-28 md:w-32" />
           </div>
         </div>
       </section>

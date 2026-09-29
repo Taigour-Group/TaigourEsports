@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const tigerLogo = 'https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png';
+const Logo = 'https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png';
 
 const Footer = () => (
   <footer className="border-t border-white/10 bg-[#050c12] pt-8 md:pt-10">
@@ -9,7 +9,7 @@ const Footer = () => (
       <div className="grid grid-cols-2 gap-x-6 gap-y-8 pb-8 md:grid-cols-4 md:gap-10">
         <div className="col-span-2 md:col-span-1">
           <Link to="/" className="mb-3 inline-flex items-center gap-3">
-            <img src={tigerLogo} alt="Taigour" className="h-12 w-12 object-contain" />
+            <img src={Logo} alt="Taigour" className="h-12 w-12 object-contain" />
             <span className="font-space text-lg font-bold leading-tight">TAIGOUR<span className="block text-[10px] font-semibold uppercase tracking-[.35em] text-cyan">E-Sports</span></span>
           </Link>
           <p className="max-w-xs text-xs leading-relaxed text-slate-400">From Local Legends to National Champions.</p>

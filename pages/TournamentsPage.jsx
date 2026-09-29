@@ -172,7 +172,7 @@ export const TournamentCard = ({ t, registrationStatus, registrations = [] }) =>
   const maxSlots = Number(t.max_slots) || 0;
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-cyan/40 bg-[#06111c] transition-colors hover:border-cyan">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-cyann bg-[#06111c] transition-colors hover:border-cyan">
       <div className="relative aspect-[16/10] overflow-hidden bg-[#07111a]">
         <img src={t.image} alt={`${t.game || 'Tournament'} artwork`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#06111c]/80 via-transparent to-black/15" />
@@ -209,7 +209,7 @@ export const TournamentCard = ({ t, registrationStatus, registrations = [] }) =>
             <span className="block text-[9px] text-slate-200 sm:text-[10px]">{participantCount}{maxSlots ? ` / ${maxSlots}` : ''}</span>
           </div>
         </div>
-        <Link to={`/tournament/${t.id}`} className="mt-auto flex min-h-9 items-center justify-center gap-2  border border-cyan px-3 py-2 text-[10px] font-bold text-cyan transition-colors hover:bg-cyan hover:text-[#041018]">
+        <Link to={`/tournament/${t.id}`} className="mt-auto flex min-h-9 items-center justify-center gap-2 rounded-md border border-cyan px-3 py-2 text-[10px] font-bold text-cyan transition-colors hover:bg-cyan hover:text-[#041018]">
           View Details <i className="fa-solid fa-arrow-right" />
         </Link>
       </div>
@@ -309,7 +309,7 @@ const TournamentsPage = ({ tournaments, registrations }) => {
         </nav>
 
         <FadeContent blur={true} duration={1000} easing="ease-out" initialOpacity={0}>
-          <div className="grid grid-cols-2 gap-3 pb-10 sm:gap-4 md:grid-cols-3 md:gap-5 md:pb-12">
+          <div className="grid grid-cols-2 gap-3 pb-10 sm:gap-4 md:grid-cols-4 md:gap-5 md:pb-12">
             {filtered.length > 0 ? filtered.map(t => (
               <TournamentCard key={t.id} t={t} registrations={registrations} registrationStatus={getRegistrationStatus(t)} />
             )) : (

@@ -29,6 +29,8 @@ const LegalLandingPage = lazy(() => import('./pages/LegalLandingPage.jsx'));
 const LegalPage = lazy(() => import('./pages/LegalLayout.jsx'));
 const MobileAppDownloadPage = lazy(() => import('./pages/MobileAppDownloadPage.jsx'));
 
+const SHOW_PRELOADER = false;
+
 const App = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -270,7 +272,7 @@ const App = () => {
     return success;
   }, [refetchAllData]);
 
-  if (loading) return <Preloader />;
+  if (loading && SHOW_PRELOADER) return <Preloader />;
 
   return (
     <Router>

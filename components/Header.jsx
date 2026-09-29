@@ -257,7 +257,7 @@ const Header = () => {
           <Link to="/" className="flex items-center gap-2 group">
             <div className="relative">
               <img
-                src="https://res.cloudinary.com/dbjjzyrr3/image/upload/v1768567786/tiger-logo_jcf2zj.png"
+                src="https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png"
                 className="w-10 h-10 group-hover:rotate-[360deg] transition-transform duration-1000"
                 alt="Taigour"
               />

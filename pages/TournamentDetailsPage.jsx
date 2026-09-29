@@ -51,7 +51,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
   const { user, profile } = useAuth();
   const tournament = tournaments.find(t => t.id === id);
 
-  const [activeTab, setActiveTab] = useState('rules');
+  const [activeTab, setActiveTab] = useState('overview');
   const [showRegModal, setShowRegModal] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -92,7 +92,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
 
     setIsSubmitting(true);
     setQueueStatus({ status: 'uploading', message: 'Encrypting and uploading dossiers...' });
-    
+
     // Pre-check balance when entry fee is required to avoid wasting uploads
     try {
       const fee = parseAmountClient(tournament.entry_fee || 0);
@@ -179,14 +179,14 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
 
       // 3. Poll for Status
       setQueueStatus({ status: 'queued', message: 'Awaiting deployment clearance...' });
-      
+
       const pollInterval = setInterval(async () => {
         try {
           const statusRes = await fetch(`/api/registration-status/${ticket_id}`);
           if (!statusRes.ok) return; // Keep trying on network blips
-          
+
           const statusData = await statusRes.json();
-          
+
           if (statusData.status === 'processing') {
             setQueueStatus({ status: 'processing', message: 'Finalizing registration...' });
           } else if (statusData.status === 'success') {
@@ -214,7 +214,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
           // Keep polling on transient errors, let the user cancel if needed
         }
       }, 1500); // Check every 1.5s
-      
+
       // Store interval ID in a ref to clean up if modal is closed early
       if (!window.pollIntervals) window.pollIntervals = [];
       window.pollIntervals.push(pollInterval);
@@ -289,8 +289,26 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
     document.body.removeChild(link);
   };
 
+  const gameLabel = tournament.game || ({ freefire: 'Free Fire', pubg: 'PUBG Mobile', ludo: 'Ludo King' }[tournament.type] || 'Esports');
+  const playerCount = Number(tournament.player_count || tournament.players || max_slots * 4) || 0;
+  const teamCount = Number(tournament.team_count || max_slots) || 0;
+  const eventStatus = registrationEnded ? 'EVENT ENDED' : registrationUpcoming ? 'REGISTRATION SOON' : 'REGISTRATION OPEN';
+
+  const detailItems = [
+    { icon: 'fa-calendar-days', label: 'DEPARTURE', value: `${formatDateLabel(tournament.date)} @ ${tournament.time || 'TBA'}` },
+    { icon: 'fa-location-dot', label: 'ARENA', value: tournament.location || 'TBA' },
+    { icon: 'fa-coins', label: 'ENTRY FEE', value: tournament.entry_fee || '0' }
+  ];
+
+  const stats = [
+    { icon: 'fa-users', label: 'TOTAL TEAMS', value: teamCount },
+    { icon: 'fa-user', label: 'ACTIVE PLAYERS', value: playerCount },
+    { icon: 'fa-coins', label: 'PRIZE POOL', value: tournament.prize || '0' },
+    { icon: 'fa-trophy', label: 'EVENT TYPE', value: tournament.mode || tournament.type_label || gameLabel.toUpperCase() }
+  ];
+
   return (
-    <div className="pt-24 md:pt-32 pb-24 bg-bg-dark min-h-screen relative">
+    <div className="min-h-screen bg-[#020b14] pb-16 pt-20 text-white md:pt-24">
       {errorBox && (
         <ErrorBox message={errorBox} onClose={() => setErrorBox(null)} type="error" />
       )}
@@ -311,199 +329,61 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
         </div>
       )}
 
-      <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 text-[10px] md:text-xs font-orbitron font-black text-gray-500 uppercase tracking-widest mb-6 md:mb-8 overflow-hidden">
-            <Link to="/tournaments" className="hover:text-primary transition-colors shrink-0">ARENA</Link>
-            <i className="fas fa-chevron-right text-[8px] shrink-0"></i>
-            <span className="text-white truncate">{tournament.title}</span>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10">
-            <div className="lg:col-span-8 space-y-6 md:space-y-8">
-              <div className="relative aspect-video rounded-xl overflow-hidden neon-border">
-                <img src={tournament.image} className="w-full h-full object-cover" alt={tournament.title} />
-                <div className="absolute inset-0 bg-gradient-to-t from-bg-dark via-transparent to-transparent"></div>
-                <div className="absolute top-3 right-3 md:top-6 md:right-6">
-                  <CountdownTimer targetDate={`${tournament.date} ${tournament.time}`} />
-                </div>
-              </div>
-
-              <div className="glass p-5 md:p-12 rounded-xl border border-white/5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-8">
-                  <div className="flex-1">
-                    <span className="text-primary font-orbitron font-black text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] mb-1 md:mb-2 block">{tournament.game}</span>
-                    <h1 className="text-2xl md:text-5xl font-orbitron font-black text-white uppercase tracking-tighter leading-tight">{tournament.title}</h1>
-                  </div>
-                  <div className="flex items-center gap-3 bg-primary/10 border border-primary/20 px-4 py-2 md:px-6 md:py-3 rounded self-start md:self-center">
-                    <div className="w-8 h-8 bg-primary rounded flex items-center justify-center shrink-0"><i className="fas fa-award text-bg-dark"></i></div>
-                    <div className="flex flex-col leading-none">
-                      <span className="text-[8px] md:text-[10px] text-primary uppercase font-bold tracking-widest">PRIZE POOL</span>
-                      <span className="text-white text-lg md:text-xl font-black">{tournament.prize}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lg:col-span-4 space-y-6 mb-5 lg:hidden">
-                  <div className="glass p-6 md:p-8 rounded-xl border border-white/5 space-y-6 md:space-y-8 lg:sticky lg:top-24">
-                    <div className="space-y-5 md:space-y-6">
-                      <div className="flex items-center gap-4 group">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary transition-all shrink-0">
-                          <i className="fas fa-calendar-day text-primary text-lg md:text-xl"></i>
-                        </div>
-                        <div>
-                          <span className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest block">DEPARTURE</span>
-                          <span className="text-white font-bold text-sm md:text-base">{tournament.date} @ {tournament.time}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 group">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary transition-all shrink-0">
-                          <i className="fas fa-map-marker-alt text-primary text-lg md:text-xl"></i>
-                        </div>
-                        <div>
-                          <span className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest block">ARENA</span>
-                          <span className="text-white font-bold text-sm md:text-base">{tournament.location}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 group relative cursor-help">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary transition-all shrink-0">
-                          <i className="fas fa-ticket-simple text-primary text-lg md:text-xl"></i>
-                        </div>
-                        <div>
-                          <span className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest block">ENTRY FEE</span>
-                          <span className="text-accent font-black text-lg md:text-xl">{tournament.entry_fee}</span>
-                        </div>
-                        <FeeTooltip />
-                      </div>
-                    </div>
-
-                    <div className="pt-6 md:pt-8 border-t border-white/5 space-y-4">
-                      <button
-                        disabled={!canRegister}
-                        onClick={() => setShowRegModal(true)}
-                        className={`w-full py-4 md:py-5 font-orbitron font-black text-sm uppercase tracking-[0.2em] md:tracking-[0.3em] transition-all cyber-button ${!canRegister ? 'bg-gray-800 text-gray-500 cursor-not-allowed border-gray-700' : 'bg-primary text-bg-dark shadow-[0_0_20px_rgba(0,212,255,0.2)] hover:shadow-[0_0_40px_rgba(0,212,255,0.3)]'}`}
-                      >
-                        {isSoldOut ? 'SLOTS FULL' : registrationUpcoming ? 'COMING SOON' : registrationEnded ? 'EVENT ENDED' : 'REGISTER NOW'}
-                      </button>
-                      <p className={`text-center text-[9px] font-bold uppercase tracking-[0.1em] md:tracking-[0.2em] ${registrationEnded || isSoldOut ? 'text-pink' : registrationUpcoming ? 'text-primary' : slotsLeft <= 5 ? 'text-pink animate-pulse' : 'text-gray-500'}`}>
-                        {registrationUpcoming
-                          ? `Registration opens on ${formatDateLabel(tournament.registration_start_date)}`
-                          : registrationEnded
-                            ? 'Registration Closed: Event Ended'
-                            : isSoldOut
-                              ? 'Registration Closed'
-                              : `${slotsLeft} sectors remaining`}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-gray-400 font-rajdhani text-lg md:text-xl leading-relaxed mb-8 md:mb-10 border-l-2 border-primary/30 pl-4 md:pl-6 italic">
-                  {tournament.description || "Deploy into the most competitive arena of the season. Only the elite will survive and claim the ultimate reward."}
-                </p>
-
-                <div className="flex gap-4 md:gap-8 border-b border-white/10 mb-8 overflow-x-auto no-scrollbar">
-                  <button onClick={() => setActiveTab('rules')} className={`pb-4 font-orbitron text-[10px] md:text-xs uppercase tracking-widest font-black transition-all relative whitespace-nowrap ${activeTab === 'rules' ? 'text-primary' : 'text-gray-500 hover:text-white'}`}>
-                    ENGAGEMENT RULES
-                    {activeTab === 'rules' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary shadow-[0_0_10px_#00d4ff]"></span>}
-                  </button>
-                  <button onClick={() => setActiveTab('prizes')} className={`pb-4 font-orbitron text-[10px] md:text-xs uppercase tracking-widest font-black transition-all relative whitespace-nowrap ${activeTab === 'prizes' ? 'text-primary' : 'text-gray-500 hover:text-white'}`}>
-                    REWARD BREAKDOWN
-                    {activeTab === 'prizes' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary shadow-[0_0_10px_#00d4ff]"></span>}
-                  </button>
-                </div>
-
-                <div className="min-h-[200px] md:min-h-[300px] animate-fade-in">
-                  {activeTab === 'rules' ? (
-                    <ul className="space-y-4 md:space-y-6 font-rajdhani text-gray-300">
-                      {(tournament.rules || [
-                        'Must use mobile device only. No Emulators.',
-                        'Players must be present 15 minutes before start.',
-                        'Hacking or exploitation results in instant disqualification.',
-                        'Admin decisions are final and binding.'
-                      ]).map((rule, idx) => (
-                        <li key={idx} className="flex gap-4 md:gap-6 items-start group">
-                          <span className="w-5 h-5 md:w-6 md:h-6 rounded bg-primary/20 border border-primary/30 flex items-center justify-center text-[9px] md:text-[10px] font-black text-primary shrink-0 group-hover:bg-primary group-hover:text-bg-dark transition-all">{idx + 1}</span>
-                          <p className="text-base md:text-lg leading-snug">{rule}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                      {(tournament.prizeBreakdown || [
-                        { position: '1st Place', reward: '60% of Prize Pool' },
-                        { position: '2nd Place', reward: '25% of Prize Pool' },
-                        { position: '3rd Place', reward: '15% of Prize Pool' }
-                      ]).map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-4 md:p-6 bg-white/5 rounded border border-white/5 group hover:border-primary/30 transition-all">
-                          <span className="text-gray-500 uppercase font-black tracking-widest text-[9px] md:text-[10px]">{item.position}</span>
-                          <span className="text-primary font-black text-lg md:text-xl group-hover:scale-105 transition-transform">{item.reward}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-4 space-y-6 hidden lg:block">
-              <div className="glass p-6 md:p-8 rounded-xl border border-white/5 space-y-6 md:space-y-8 lg:sticky lg:top-24">
-                <div className="space-y-5 md:space-y-6">
-                  <div className="flex items-center gap-4 group">
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary transition-all shrink-0">
-                      <i className="fas fa-calendar-day text-primary text-lg md:text-xl"></i>
-                    </div>
-                    <div>
-                      <span className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest block">DEPARTURE</span>
-                      <span className="text-white font-bold text-sm md:text-base">{tournament.date} @ {tournament.time}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 group">
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary transition-all shrink-0">
-                      <i className="fas fa-map-marker-alt text-primary text-lg md:text-xl"></i>
-                    </div>
-                    <div>
-                      <span className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest block">ARENA</span>
-                      <span className="text-white font-bold text-sm md:text-base">{tournament.location}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 group relative cursor-help">
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary transition-all shrink-0">
-                      <i className="fas fa-ticket-simple text-primary text-lg md:text-xl"></i>
-                    </div>
-                    <div>
-                      <span className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest block">ENTRY FEE</span>
-                      <span className="text-accent font-black text-lg md:text-xl">{tournament.entry_fee}</span>
-                    </div>
-                    <FeeTooltip />
-                  </div>
-                </div>
-
-                <div className="pt-6 md:pt-8 border-t border-white/5 space-y-4">
-                  <button
-                    disabled={!canRegister}
-                    onClick={() => setShowRegModal(true)}
-                    className={`w-full py-4 md:py-5 font-orbitron font-black text-sm uppercase tracking-[0.2em] md:tracking-[0.3em] transition-all cyber-button ${!canRegister ? 'bg-gray-800 text-gray-500 cursor-not-allowed border-gray-700' : 'bg-primary text-bg-dark shadow-[0_0_20px_rgba(0,212,255,0.2)] hover:shadow-[0_0_40px_rgba(0,212,255,0.3)]'}`}
-                  >
-                    {isSoldOut ? 'SLOTS FULL' : registrationUpcoming ? 'COMING SOON' : registrationEnded ? 'EVENT ENDED' : 'REGISTER NOW'}
-                  </button>
-                  <p className={`text-center text-[9px] font-bold uppercase tracking-[0.1em] md:tracking-[0.2em] ${registrationEnded || isSoldOut ? 'text-pink' : registrationUpcoming ? 'text-primary' : slotsLeft <= 5 ? 'text-pink animate-pulse' : 'text-gray-500'}`}>
-                    {registrationUpcoming
-                      ? `Registration opens on ${formatDateLabel(tournament.registration_start_date)}`
-                      : registrationEnded
-                        ? 'Registration Closed: Event Ended'
-                        : isSoldOut
-                          ? 'Registration Closed'
-                          : `${slotsLeft} sectors remaining`}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-
-          </div>
+      <main className="mx-auto max-w-[1180px] px-4 md:px-6">
+        <div className="mb-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+          <Link to="/tournaments" className="transition-colors hover:text-cyan-300"><i className="fas fa-house mr-2 text-cyan-400" />Tournaments</Link>
+          <i className="fas fa-chevron-right text-[8px]" />
+          <span className="truncate text-slate-300">{tournament.title}</span>
         </div>
-      </div>
+
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="relative min-h-[340px] overflow-hidden rounded-xl border border-cyann bg-[#071a29] shadow-[0_0_30px_rgba(0,191,255,0.12)] md:min-h-[410px]">
+            <img src={tournament.image} alt={tournament.title} className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#020b14] via-[#020b14]/35 to-[#031321]/10" />
+            <div className="absolute inset-x-0 bottom-0 p-5 md:p-9">
+              <span className="mb-3 inline-flex rounded-md border border-cyann bg-[#031321]/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">{gameLabel}</span>
+              <h1 className="max-w-2xl font-orbitron text-3xl font-black uppercase leading-[0.95] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)] md:text-6xl">{tournament.title}</h1>
+              <p className="mt-4 max-w-xl text-sm font-semibold uppercase tracking-[0.12em] text-slate-200 md:text-base">{tournament.description || 'Show your skills. Prove yourself.'}</p>
+              <div className="mt-5 flex flex-wrap gap-2 text-[9px] font-bold uppercase tracking-wider text-cyan-100">
+                <span className="rounded-xl border border-cyann bg-[#031321]/80 px-3 py-2"><i className="fas fa-user mr-2 text-cyan-300" />Solo</span>
+                <span className="rounded-xl border border-cyann bg-[#031321]/80 px-3 py-2"><i className="fas fa-users mr-2 text-cyan-300" />Squad</span>
+                <span className="rounded-xl border border-cyann bg-[#031321]/80 px-3 py-2"><i className="fas fa-crosshairs mr-2 text-cyan-300" />{stats[3].value}</span>
+              </div>
+            </div>
+            <div className="absolute right-4 top-4"><CountdownTimer targetDate={`${tournament.date} ${tournament.time}`} /></div>
+          </div>
+
+          <aside className="rounded-xl border border-cyann/80 bg-[#041321]/90 p-5 shadow-[0_0_25px_rgba(0,191,255,0.1)] md:p-6">
+            <h2 className="mb-5 flex items-center gap-3 font-orbitron text-sm font-black uppercase tracking-wide text-cyan-300"><i className="fas fa-clipboard-list" />Event Details</h2>
+            <div className="space-y-1">
+              {detailItems.map((item) => <div key={item.label} className="flex items-center gap-3 rounded-lg bg-[#061d30] p-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyann/50 bg-cyan-500/10 text-lg text-cyan-300"><i className={`fas ${item.icon}`} /></span><span className="min-w-0"><small className="block text-[9px] font-bold uppercase tracking-widest text-cyan">{item.label}</small><strong className="block truncate text-sm text-slate-100">{item.value}</strong></span>{item.label === 'ENTRY FEE' && <FeeTooltip />}</div>)}
+            </div>
+            <button disabled={!canRegister} onClick={() => setShowRegModal(true)} className={`mt-5 flex w-full items-center justify-center gap-2 rounded-lg border py-3 font-orbitron text-xs font-black uppercase tracking-widest transition-all ${canRegister ? 'border-cyann bg-cyan-400 text-[#02111d] shadow-[0_0_20px_rgba(0,212,255,0.25)] hover:bg-cyan-300' : 'cursor-not-allowed border-slate-700 bg-slate-800 text-slate-500'}`}><i className="fas fa-lock" />{isSoldOut ? 'Slots Full' : registrationUpcoming ? 'Coming Soon' : registrationEnded ? 'Event Ended' : 'Register Now'}</button>
+            <p className={`mt-3 text-center text-[9px] font-bold uppercase tracking-widest ${canRegister ? 'text-slate-500' : 'text-rose-400'}`}>{eventStatus} {canRegister && `- ${slotsLeft} slots remaining`}</p>
+          </aside>
+        </section>
+
+        <section className="my-5 grid grid-cols-2 overflow-hidden rounded-xl border border-cyann bg-[#061a2b] md:grid-cols-4">
+          {stats.map((stat, index) => <div key={stat.label} className={`flex items-center gap-3 p-4 md:p-5 ${index < stats.length - 1 ? 'border-b border-cyann md:rounded-xl md:border-b-0 md:border-r' : ''} ${index === 1 ? 'border-r md:border-r' : ''}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyann/50 bg-cyan-500/10 text-lg text-cyan-300"><i className={`fas ${stat.icon}`} /></span><span><small className="block text-[8px] font-bold uppercase tracking-widest text-cyan-400/70">{stat.label}</small><strong className="block text-base uppercase text-slate-100 md:text-lg">{stat.value}</strong></span></div>)}
+        </section>
+
+        <section className="grid gap-2 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <nav className="rounded-xl border space-y-1 border-cyann/70 bg-[#041321]/20 p-2">
+            {['overview', 'rules', 'prizes', 'teams', 'schedule', 'results'].map((tab) => {
+              const isActive = activeTab === tab;
+              return <button key={tab} onClick={() => setActiveTab(tab)} style={isActive ? { backgroundColor: '#22D3EE', borderColor: '#22D3EE', color: '#031321' } : undefined} className={`flex w-full items-center gap-2 rounded-lg border bg-[#0269811d] px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest transition-colors ${isActive ? 'border-cyann' : 'border-transparent text-slate-300 hover:border-cyann/70 hover:bg-cyan-950/50'}`}><i style={isActive ? { color: '#031321' } : undefined} className={`fas ${['fa-book-open', 'fa-shield-halved', 'fa-gift', 'fa-users', 'fa-calendar-days', 'fa-chart-column'][['overview', 'rules', 'prizes', 'teams', 'schedule', 'results'].indexOf(tab)]} w-4 text-center`} /><span style={isActive ? { color: '#031321' } : undefined}>{tab}</span></button>;
+            })}
+            <div className="relative mt-3 hidden aspect-[3/4] overflow-hidden rounded-lg md:block"><img src={tournament.image} alt="" className="h-full w-full object-cover opacity-70" /><div className="absolute inset-0 bg-gradient-to-t from-[#041321] via-transparent to-transparent" /><strong className="absolute bottom-5 left-4 right-4 font-orbitron text-xl uppercase italic text-cyan-300">Fight<br />for glory</strong></div>
+          </nav>
+
+          <article className="rounded-xl border border-cyann/70 bg-[#041321]/90 p-5 md:p-7">
+            <div className="mb-6 flex flex-col justify-between gap-3 border-b border-cyann/70 pb-5 md:flex-row md:items-end"><div><span className="font-orbitron text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">Tournament Overview</span><h2 className="mt-2 font-orbitron text-2xl font-black uppercase text-white md:text-3xl">{tournament.title}</h2></div><span className="text-xs font-bold uppercase tracking-widest text-slate-400">{eventStatus}</span></div>
+            <p className="max-w-2xl text-sm leading-relaxed text-slate-300 md:text-base">{tournament.description || 'Deploy into the most competitive arena of the season. Only the elite will survive and claim the ultimate reward.'}</p>
+            <div className="mt-6 grid gap-2 sm:grid-cols-3"><div className="rounded-lg border border-cyann/80 bg-[#061d30] p-4"><small className="block text-[9px] uppercase tracking-widest text-cyan-400">Mode</small><strong className="text-sm uppercase">{stats[3].value}</strong></div><div className="rounded-lg border border-cyann/80 bg-[#061d30] p-4"><small className="block text-[9px] uppercase tracking-widest text-cyan-400">Players</small><strong className="text-sm uppercase">Squad</strong></div><div className="rounded-lg border border-cyann/80 bg-[#061d30] p-4"><small className="block text-[9px] uppercase tracking-widest text-cyan-400">Map / Arena</small><strong className="text-sm uppercase">{tournament.location || 'TBA'}</strong></div></div>
+            <div className="mt-7"><h3 className="mb-4 flex items-center gap-3 font-orbitron text-sm font-black uppercase tracking-widest text-cyan-300"><i className="fas fa-person-running" />Event Rules</h3>{activeTab === 'prizes' ? <div className="grid gap-3 sm:grid-cols-3">{(tournament.prizeBreakdown || [{ position: '1st Place', reward: '60% of Prize Pool' }, { position: '2nd Place', reward: '25% of Prize Pool' }, { position: '3rd Place', reward: '15% of Prize Pool' }]).map((item) => <div key={item.position} className="rounded-lg border border-cyann/80 bg-[#061d30] p-4"><small className="block text-xs uppercase text-slate-500">{item.position}</small><strong className="text-cyan-300">{item.reward}</strong></div>)}</div> : <ul className="space-y-3 rounded-lg border border-cyann/80 bg-[#061d30] p-4">{(tournament.rules || ['Must use mobile device only. No Emulators.', 'Players must be present 15 minutes before start.', 'Hacking or exploitation results in instant disqualification.', 'Admin decisions are final and binding.']).map((rule, index) => <li key={rule} className="flex items-center gap-3 text-sm text-slate-200"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cyann/60 text-xs text-cyan-300">{index + 1}</span>{rule}</li>)}</ul>}</div>
+          </article>
+        </section>
+      </main>
 
       {showRegModal && (
         <div
@@ -537,7 +417,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
                 <p className="text-gray-400 font-rajdhani text-lg animate-pulse">{queueStatus.message}</p>
               </div>
             ) : !registrationSuccess ? (
-              <TeamRegistrationForm 
+              <TeamRegistrationForm
                 tournament={tournament}
                 onSubmit={handleRegistrationSubmit}
                 onCancel={closeModals}
