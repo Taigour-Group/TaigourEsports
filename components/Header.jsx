@@ -60,6 +60,7 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+<<<<<<< HEAD
   const isActive = (path) => path.startsWith('/#')
     ? location.pathname === '/' && location.hash === path.slice(1)
     : location.pathname === path;
@@ -83,6 +84,17 @@ const Header = () => {
     { name: 'Contact', path: '/#contact' }
   ];
 
+=======
+  const isActive = (path) => location.pathname === path;
+
+  const navLinks = [
+    { name: 'Home', path: '/', icon: 'fa-house' },
+    { name: 'Arena', path: '/tournaments', icon: 'fa-crosshairs' },
+    { name: 'Ranks', path: '/leaderboard', icon: 'fa-crown' },
+    { name: 'Live', path: '/streams', icon: 'fa-bolt' }
+  ];
+
+>>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
   const getUserDisplayName = () => {
     if (profile?.username) return profile.username;
     if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
@@ -101,6 +113,7 @@ const Header = () => {
       {/* ─── Desktop Top Bar ─── */}
       <nav
         id="desktop-navbar"
+<<<<<<< HEAD
         className="fixed top-0 z-[100] hidden w-full py-2 transition-all duration-300 md:block"
         style={{
           background: 'rgba(3, 11, 18, 0.96)',
@@ -110,11 +123,32 @@ const Header = () => {
         }}
       >
         <div className="container mx-auto flex items-center justify-between gap-3 px-4 lg:px-6">
+=======
+        className={`fixed top-0 w-full z-[100] transition-all duration-500 hidden md:block ${
+          isScrolled
+            ? 'py-2'
+            : 'py-4'
+        }`}
+        style={{
+          background: isScrolled
+            ? 'rgba(7, 7, 9, 0.82)'
+            : 'linear-gradient(180deg, rgba(7,7,9,0.7) 0%, transparent 100%)',
+          backdropFilter: isScrolled ? 'blur(24px) saturate(180%)' : 'none',
+          WebkitBackdropFilter: isScrolled ? 'blur(24px) saturate(180%)' : 'none',
+          borderBottom: isScrolled ? '1px solid rgba(0, 212, 255, 0.08)' : '1px solid transparent',
+        }}
+      >
+        <div className="container mx-auto px-6 flex items-center justify-between">
+>>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
           {/* ─── Logo ─── */}
           <Link to="/" className="flex items-center gap-3 group relative z-10" id="nav-logo">
             <div className="relative">
               <img
+<<<<<<< HEAD
                 src="https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png"
+=======
+                src="https://res.cloudinary.com/dbjjzyrr3/image/upload/v1768567786/tiger-logo_jcf2zj.png"
+>>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                 className="w-10 h-10 group-hover:rotate-[360deg] transition-transform duration-1000 relative z-10"
                 alt="Taigour"
               />
@@ -138,6 +172,7 @@ const Header = () => {
           </Link>
 
           {/* ─── Center Navigation Pill ─── */}
+<<<<<<< HEAD
           <div className="flex min-w-0 flex-1 items-center justify-center gap-0 lg:gap-1" id="desktop-nav-links">
             {desktopNavLinks.map((link) => (
               <Link
@@ -155,6 +190,64 @@ const Header = () => {
           {/* ─── Right Side: User / Auth ─── */}
           <div className="relative z-10 flex shrink-0 items-center gap-2">
             <Link to="/tournaments" className="hidden rounded-2xl border border-cyan px-3 py-2 font-space text-[10px] font-bold text-cyan transition-colors hover:bg-cyan hover:text-[#041018] md:inline-flex">Join Now</Link>
+=======
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div
+              className="flex items-center gap-1 px-2 py-1.5 rounded-full relative"
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.3)',
+              }}
+              id="nav-pill"
+            >
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className="relative px-5 py-2 rounded-full transition-all duration-300 group"
+                  id={`nav-link-${link.name.toLowerCase()}`}
+                  style={{
+                    background: isActive(link.path)
+                      ? 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)'
+                      : 'transparent',
+                    boxShadow: isActive(link.path)
+                      ? '0 0 20px rgba(0,212,255,0.1), inset 0 1px 0 rgba(0,212,255,0.1)'
+                      : 'none',
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <i className={`fa-solid ${link.icon} text-[10px] transition-all duration-300 ${
+                      isActive(link.path)
+                        ? 'text-primary drop-shadow-[0_0_6px_rgba(0,212,255,0.5)]'
+                        : 'text-gray-500 group-hover:text-gray-300'
+                    }`}></i>
+                    <span className={`font-orbitron font-bold text-[11px] uppercase tracking-widest transition-all duration-300 ${
+                      isActive(link.path)
+                        ? 'text-primary'
+                        : 'text-gray-400 group-hover:text-white'
+                    }`}>
+                      {link.name}
+                    </span>
+                  </div>
+                  {/* Active indicator dot */}
+                  {isActive(link.path) && (
+                    <span
+                      className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
+                      style={{
+                        background: '#00d4ff',
+                        boxShadow: '0 0 8px #00d4ff, 0 0 16px rgba(0, 213, 255, 0.78)',
+                      }}
+                    ></span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* ─── Right Side: User / Auth ─── */}
+          <div className="flex items-center gap-3 relative z-10">
+>>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
             {loading ? (
               <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>
             ) : user ? (
@@ -239,8 +332,23 @@ const Header = () => {
                 )}
               </div>
             ) : (
+<<<<<<< HEAD
               <button onClick={loginWithGoogle} className="grid h-9 w-9 place-items-center rounded-md border border-white/15 text-cyan transition-colors hover:border-cyan" id="sign-in-button" aria-label="Sign in">
                 <i className="fa-regular fa-user text-xs" />
+=======
+              <button
+                onClick={loginWithGoogle}
+                className="flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 group cursor-pointer"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
+                  border: '1px solid rgba(0,212,255,0.2)',
+                  boxShadow: '0 0 20px rgba(0,212,255,0.08)',
+                }}
+                id="sign-in-button"
+              >
+                <i className="fa-brands fa-google text-xs text-primary group-hover:scale-110 transition-transform"></i>
+                <span className="font-orbitron font-bold text-[10px] text-primary uppercase tracking-wider">Sign In</span>
+>>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
               </button>
             )}
           </div>

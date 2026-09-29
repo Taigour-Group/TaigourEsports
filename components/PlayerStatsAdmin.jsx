@@ -205,7 +205,11 @@ const PlayerStatsAdmin = ({ registrations }) => {
       bronze: 'bg-amber-900/30 border-amber-700',
       silver: 'bg-slate-900/30 border-slate-700',
       gold: 'bg-yellow-900/30 border-yellow-700',
+<<<<<<< HEAD
       platinum: 'bg-cyan-900/30 border-cyann'
+=======
+      platinum: 'bg-cyan-900/30 border-cyan-700'
+>>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
     };
     return colors[tier] || 'bg-gray-900 border-gray-700';
   };
