@@ -1,11 +1,7 @@
 html, body {
   background-color: #0B0F14;
   color: #F8FAFC;
-<<<<<<< HEAD
   font-family: 'Manrope', sans-serif;
-=======
-  font-family: 'Inter', sans-serif;
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
   scroll-behavior: smooth;
   overflow-x: hidden;
   width: 100%;
@@ -20,11 +16,7 @@ body {
 
 /* Base Headings */
 h1, h2, h3, h4, h5, h6, .font-space {
-<<<<<<< HEAD
   font-family: 'Barlow', sans-serif;
-=======
-  font-family: 'Space Grotesk', sans-serif;
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
 }
 
 /* Premium Minimal Cards */
@@ -46,11 +38,7 @@ h1, h2, h3, h4, h5, h6, .font-space {
   transition: all 0.3s ease;
 }
 .clean-border:hover {
-<<<<<<< HEAD
   border-color: rgba(59, 217, 242, 0.5); /* Cyan */
-=======
-  border-color: rgba(34, 211, 238, 0.5); /* Cyan */
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -64,7 +52,6 @@ h1, h2, h3, h4, h5, h6, .font-space {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
 }
 
-<<<<<<< HEAD
 #tournaments a,
 #games a,
 #news a {
@@ -84,8 +71,6 @@ h1, h2, h3, h4, h5, h6, .font-space {
   clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
 }
 
-=======
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
 /* Scrollbars */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

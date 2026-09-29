@@ -65,11 +65,7 @@ const Preloader = () => {
           {/* Taigour E-Sports Logo with Glitch Effect */}
           <div className="absolute inset-0 m-auto w-16 h-16 md:w-20 md:h-20 flex items-center justify-center">
             <img 
-<<<<<<< HEAD
               src="https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png" 
-=======
-              src="https://res.cloudinary.com/dbjjzyrr3/image/upload/v1768567786/tiger-logo_jcf2zj.png" 
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
               alt="Loading" 
               className="w-full h-full drop-shadow-[0_0_30px_rgba(0,212,255,0.8)] animate-pulse"
             />

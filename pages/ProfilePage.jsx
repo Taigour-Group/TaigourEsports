@@ -176,18 +176,13 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
 
 
   return (
-<<<<<<< HEAD
     <div id="profile-dashboard" className="relative min-h-screen overflow-hidden bg-[#050d14] pb-16 pt-20 text-white md:pt-24">
-=======
-    <div className="pt-24 md:pt-32 pb-24 bg-bg-dark min-h-screen">
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
       {errorMsg && (
         <ErrorBox message={errorMsg} onClose={() => setErrorMsg('')} type="error" />
       )}
       {successMsg && (
         <ErrorBox message={successMsg} onClose={() => setSuccessMsg('')} type="success" />
       )}
-<<<<<<< HEAD
       <div className="container relative mx-auto max-w-7xl px-4 md:px-8">
 
         {/* ─── Profile Header / Hero ─── */}
@@ -196,49 +191,22 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
           <img src="https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png" alt="" aria-hidden="true" className="pointer-events-none absolute -right-10 -top-24 hidden h-[390px] w-[390px] object-contain opacity-[0.09] md:block" />
           <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-cyann to-transparent" />
           <div className="relative z-10 flex flex-col items-center gap-5 sm:flex-row sm:items-start md:gap-6">
-=======
-      <div className="container mx-auto px-4 max-w-6xl">
-
-        {/* ─── Profile Header / Hero ─── */}
-        <div
-          className="glass p-6 md:p-10 rounded-2xl border border-white/5 relative overflow-hidden mb-8"
-          style={{
-            background: 'linear-gradient(135deg, rgba(15, 15, 19, 0.95) 0%, rgba(7, 7, 9, 0.98) 100%)',
-          }}
-        >
-          {/* Cyber accents */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 blur-[80px] rounded-full pointer-events-none"></div>
-
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8 relative z-10">
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
             {/* Avatar block */}
             <div className="relative">
               {profile?.avatar_url || user.user_metadata?.avatar_url ? (
                 <img
                   src={profile?.avatar_url || user.user_metadata?.avatar_url}
-<<<<<<< HEAD
                   className="h-24 w-24 rounded-lg border border-cyann object-cover shadow-[0_0_24px_rgba(0,212,255,.16)] md:h-28 md:w-28"
                   alt="Avatar"
                 />
               ) : (
                 <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-cyann bg-cyan-400/10 font-orbitron text-3xl font-black text-cyan shadow-[0_0_24px_rgba(0,212,255,.16)] md:h-28 md:w-28">
-=======
-                  className="w-24 h-24 md:w-32 md:h-32 rounded-2xl object-cover border border-primary/20 ring-4 ring-primary/10 shadow-2xl"
-                  alt="Avatar"
-                />
-              ) : (
-                <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl flex items-center justify-center font-orbitron font-black text-3xl text-primary bg-primary/10 border border-primary/20 ring-4 ring-primary/10 shadow-2xl">
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                   {profile?.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                 </div>
               )}
               {/* Online pulse */}
               <div
-<<<<<<< HEAD
                 className="absolute -bottom-1 -right-2 flex items-center gap-1 rounded-sm border border-[#071722] bg-emerald-400 px-2 py-1 font-orbitron text-[8px] font-bold text-[#06110d]"
-=======
-                className="absolute -bottom-1 -right-1 bg-tertiary px-2 py-0.5 rounded text-[8px] font-orbitron font-bold text-dark flex items-center gap-1 border-2 border-bg-dark"
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                 style={{ boxShadow: '0 0 10px #00ff80' }}
               >
                 <span className="w-1.5 h-1.5 bg-dark rounded-full animate-ping"></span>
@@ -247,7 +215,6 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
             </div>
 
             {/* Profile Info details */}
-<<<<<<< HEAD
             <div className="mt-1 min-w-0 flex-1 space-y-2 text-center sm:text-left">
               <p className="font-space text-[9px] font-bold uppercase tracking-[0.24em] text-cyan">Player Profile</p>
               <h1 className="break-words font-space text-3xl font-black uppercase leading-none text-white sm:text-4xl md:text-5xl">
@@ -257,24 +224,12 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                 <span className="break-all">{user.email}</span>
                 <span className="hidden text-cyan/50 sm:inline">/</span>
                 <span className="font-rajdhani text-xs uppercase text-slate-400">
-=======
-            <div className="flex-1 text-center md:text-left space-y-2 mt-2">
-              <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter">
-                {profile?.full_name || user.user_metadata?.full_name || 'Player One'}
-              </h1>
-              <p className="text-gray-400 font-rajdhani text-sm md:text-base flex flex-wrap justify-center md:justify-start items-center gap-2">
-                <span>{user.email}</span>
-                <span className="text-white/10 hidden md:inline">|</span>
-                <br />
-                <span className="text-gray-400 uppercase  font-rajdhani text-xs">
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                   Age: {profile?.age || 'Unset'}
                 </span>
               </p>
 
               {/* Player ID */}
 
-<<<<<<< HEAD
               <div className="mt-2 flex items-center justify-center gap-1 sm:justify-start">
                 <div className="inline-block rounded-md border border-cyann bg-[#06111a]/80 px-3">
                   <span className="font-orbitron text-[9px] font-bold uppercase text-slate-400">Player ID: </span>
@@ -283,43 +238,22 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                 <button
                   onClick={() => navigator.clipboard.writeText(playerID)}
                   className="rounded-md border border-cyann bg-[#06111a]/80 px-3 py-2 font-orbitron text-[9px] font-bold uppercase tracking-wider text-slate-300 transition-colors hover:bg-cyan hover:text-[#041018]"
-=======
-              <div className="flex items-center gap-1 mt-1 justify-center md:justify-start">
-                <div className="px-3 py-2 bg-white/5 border border-primary/20 rounded-lg inline-block">
-                  <span className="text-[9px] font-orbitron font-bold uppercase text-gray-400">Player ID: </span>
-                  <span className="text-[10px] font-mono font-bold text-primary">{playerID}</span>
-                </div>
-                <button
-                  onClick={() => navigator.clipboard.writeText(playerID)}
-                  className=" text-[9px] px-3 py-2 bg-white/5 border-primary/20 rounded hover:bg-primary hover:text-gray-900 font-orbitron font-bold uppercase tracking-wider text-gray-400 hover:text-primary transition-colors"
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                 >
                   Copy <i className="fa-regular fa-copy"></i>
                 </button>
               </div>
 
               {/* Wallet quick actions */}
-<<<<<<< HEAD
               <div className="mt-3 flex flex-col justify-center gap-2 sm:flex-row sm:justify-start">
                 <button
                   onClick={() => setActiveTab('wallet')}
                   className="rounded-md border border-cyann bg-cyan px-4 py-2 font-orbitron text-[10px] font-black uppercase tracking-widest text-[#041018] transition-colors hover:bg-white"
-=======
-              <div className="flex flex-col sm:flex-row gap-2 mt-3 justify-center md:justify-start">
-                <button
-                  onClick={() => setActiveTab('wallet')}
-                  className="px-4 py-2 bg-primary text-dark rounded-lg font-orbitron font-black text-[10px] uppercase tracking-widest hover:bg-primary/80 transition-all"
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                 >
                   Open Wallet
                 </button>
                 <Link
                   to="/tournaments"
-<<<<<<< HEAD
                   className="rounded-md border border-cyann bg-[#07131d]/70 px-4 py-2 text-center font-orbitron text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-cyann hover:text-cyan"
-=======
-                  className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg font-orbitron font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all text-center"
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                 >
                   Join Tournaments
                 </Link>
@@ -332,20 +266,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
         </div>
 
         {/* ─── Profile Stats Dashboard grid ─── */}
-<<<<<<< HEAD
         <div className="mb-5 grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
-=======
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-20">
-          <p className='font-orbitron p-2 font-bold text-[12px] rounded uppercase tracking-wider  md:hidden transition-colors'
-          style={{
-                  background:'linear-gradient(180deg, rgba(0, 213, 255, 0.2) 0%, rgba(0, 234, 255, 0.27) 100%)'
-                    
-                }}
-          >
-            Player Stats <i className="fa-solid fa-chevron-right"></i>
-          </p>
-          <div className="col-span-2 md:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-4">
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
           
           {[
             { label: 'ARENA ENTRIES', val: totalTournaments, icon: 'fa-trophy', color: 'text-primary' },
@@ -355,7 +276,6 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
           ].map((stat, idx) => (
             <div
               key={idx}
-<<<<<<< HEAD
               className="flex items-center justify-between rounded-md border border-cyann bg-[#081722] p-3 transition-colors group hover:border-cyann md:p-4"
             >
               <div className="space-y-1">
@@ -378,39 +298,6 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
           {/* Tab buttons / selector sidebar */}
           <aside className="space-y-3">
           <div className="grid grid-cols-2 gap-2 md:grid-cols-1">
-=======
-              className="glass p-3.5 rounded-xl border border-white/5 flex items-center justify-between group hover:border-white/10 transition-colors"
-            >
-              <div className="space-y-1">
-                <span className="text-[8px] md:text-[10px] font-orbitron font-bold text-gray-500 uppercase tracking-[0.2px] block">
-                  {stat.label}
-                </span>
-                <span className="text-[15px] md:text-xl font-orbitron font-black text-white block leading-none">
-                  {stat.val}
-                </span>
-              </div>
-              <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-105 transition-transform`}>
-                <i className={`fa-solid ${stat.icon} ${stat.color} text-base md:text-lg`}></i>
-              </div>
-            </div>
-          ))}
-          </div>
-        </div>
-
-        {/* ─── Main Content Tabs ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-        <p className='font-orbitron p-2 font-bold text-[12px] rounded uppercase tracking-wider  md:hidden transition-colors'
-        style={{
-                  background:'linear-gradient(180deg, rgba(0, 213, 255, 0.2) 0%, rgba(0, 234, 255, 0.27) 100%)'
-                    
-                }}
-        >
-           Select Menu & Settings <i className="fa-solid fa-chevron-right"></i>
-        </p>
-          {/* Tab buttons / selector sidebar */}
-          <div className="grid grid-cols-2 md:grid-cols-1 lg:col-span-3 gap-2 md:gap-0 space-y-0 md:space-y-2">
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
             {[
               { id: 'wallet', label: 'Wallet', desc: 'Balance & membership', icon: 'fa-wallet' },
               { id: 'deployments', label: 'Deployments', desc: 'Registered Tournament', icon: 'fa-shield-halved' },
@@ -420,7 +307,6 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
               <button
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setSuccessMsg(''); setErrorMsg(''); }}
-<<<<<<< HEAD
                 aria-pressed={activeTab === tab.id}
                 className="flex w-full cursor-pointer items-center gap-2 rounded-md border p-2.5 text-left transition-colors group sm:gap-3 sm:p-3"
                 style={{
@@ -435,46 +321,22 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors sm:h-9 sm:w-9 ${activeTab === tab.id
                     ? 'bg-primary/20 border border-primary/30 text-primary shadow-[0_0_10px_rgba(0,212,255,0.2)]'
                     : 'bg-cyan-400/5 border border-cyann text-gray-400 group-hover:text-gray-300'
-=======
-                className="w-full text-left p-3 rounded-xl border transition-all duration-300 flex items-center gap-2 md:gap-4 group cursor-pointer"
-                style={{
-                  background: activeTab === tab.id
-                    ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 213, 255, 0.36) 100%)'
-                    : 'rgba(255, 255, 255, 0.08)',
-                  borderColor: activeTab === tab.id ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                  boxShadow: activeTab === tab.id ? '0 0 20px rgba(0, 212, 255, 0.05)' : 'none',
-                }}
-              >
-                <div
-                  className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center transition-all ${activeTab === tab.id
-                    ? 'bg-primary/20 border border-primary/30 text-primary shadow-[0_0_10px_rgba(0,212,255,0.2)]'
-                    : 'bg-white/5 border border-white/10 text-gray-400 group-hover:text-gray-300'
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                     }`}
                 >
                   <i className={`fa-solid ${tab.icon} text-[14px] md:text-sm`}></i>
                 </div>
                 <div className="flex-1">
-<<<<<<< HEAD
                   <span className={`block font-space text-[9px] font-bold uppercase sm:text-[10px] ${activeTab === tab.id ? 'text-cyan' : 'text-slate-200 group-hover:text-white'
                     }`}>
                     {tab.label}
                   </span>
                   <span className="mt-0.5 hidden truncate font-rajdhani text-[9px] uppercase text-slate-400 sm:block">
-=======
-                  <span className={`font-orbitron font-bold text-[10px] md:text-xs uppercase tracking-wider block transition-colors ${activeTab === tab.id ? 'text-primary' : 'text-gray-300 group-hover:text-white'
-                    }`}>
-                    {tab.label}
-                  </span>
-                  <span className="text-[9px] font-rajdhani text-gray-400 uppercase tracking-widest block mt-0.5">
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                     {tab.desc}
                   </span>
                 </div>
               </button>
             ))}
           </div>
-<<<<<<< HEAD
           <div className="relative mt-3 hidden min-h-[250px] overflow-hidden rounded-lg border border-cyann bg-[#06111a] p-5 md:flex md:flex-col md:items-center md:justify-end md:text-center">
             <img src="https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png" alt="Taigour E-Sports" className="absolute inset-x-0 top-4 mx-auto h-36 w-36 object-contain opacity-80" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#06111a] via-[#06111a]/50 to-transparent" />
@@ -490,11 +352,6 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
 
           {/* Tab content panel */}
           <div className="min-h-[400px] min-w-0 rounded-lg border border-cyann bg-[#07131d]/95 p-3 shadow-[0_0_18px_rgba(0,212,255,0.06)] sm:p-4 md:p-5">
-=======
-
-          {/* Tab content panel */}
-          <div className="lg:col-span-9 glass p-2 md:p-6 rounded-2xl border border-white/5 min-h-[400px]">
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
 
             {/* ─── TAB 0: Wallet / Balance ─── */}
             {activeTab === 'wallet' && (

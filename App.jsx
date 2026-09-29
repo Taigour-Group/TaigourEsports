@@ -1,9 +1,5 @@
 
-<<<<<<< HEAD
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
-=======
-import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
@@ -18,20 +14,13 @@ import { balanceService } from './services/balanceService.js';
 import { hydrateCatalogFromSupabase } from './constants/balanceConstants.js';
 
 // Lazy load page components
-<<<<<<< HEAD
 const HomePage = lazy(() => import('./pages/HomePageRedesigned.jsx'));
 const GamesPage = lazy(() => import('./pages/GamesPage.jsx'));
-=======
-const HomePage = lazy(() => import('./pages/HomePage.jsx'));
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
 const TournamentsPage = lazy(() => import('./pages/TournamentsPage.jsx'));
 const TournamentDetailsPage = lazy(() => import('./pages/TournamentDetailsPage.jsx'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage.jsx'));
 const StreamsPage = lazy(() => import('./pages/StreamsPage.jsx'));
-<<<<<<< HEAD
 const NewsPage = lazy(() => import('./pages/NewsPage.jsx'));
-=======
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
 const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
 const BecomePartnerPage = lazy(() => import('./pages/BecomePartnerPage.jsx'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage.jsx'));
@@ -50,10 +39,7 @@ const App = () => {
   const [streams, setStreams] = useState([]);
   const [registrations, setRegistrations] = useState([]); 
   const [logs, setLogs] = useState([]);
-<<<<<<< HEAD
   const initialLoadStartedRef = useRef(false);
-=======
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
 
   const loadCatalog = useCallback(async () => {
     try {
@@ -88,12 +74,9 @@ const App = () => {
 
   // Initial load + Capacitor deep-link / OAuth error handling
   useEffect(() => {
-<<<<<<< HEAD
     if (initialLoadStartedRef.current) return;
     initialLoadStartedRef.current = true;
 
-=======
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
     // Handle native mobile deep links (Capacitor)
     if (window.Capacitor?.Plugins?.App) {
       window.Capacitor.Plugins.App.addListener('appUrlOpen', (data) => {
@@ -142,13 +125,10 @@ const App = () => {
           title: 'Find Nepal Esports Tournaments | Taigour E-Sports',
           description: 'Browse and register for PUBG Mobile, Free Fire, and Ludo tournaments across Nepal with Taigour E-Sports.'
         },
-<<<<<<< HEAD
         '/games': {
           title: 'Games | Taigour E-Sports',
           description: 'Explore PUBG Mobile, Free Fire, and Ludo tournaments on Taigour E-Sports.'
         },
-=======
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
         '/leaderboard': {
           title: 'Leaderboard Rankings | Taigour E-Sports',
           description: 'Track top players and teams in Nepal esports tournaments with live leaderboard rankings.'
@@ -306,18 +286,12 @@ const App = () => {
           <Routes>
 
               <Route path="/" element={<HomePage tournaments={tournaments} leaderboard={leaderboard} registrations={registrations} />} />
-<<<<<<< HEAD
               <Route path="/games" element={<GamesPage tournaments={tournaments} />} />
-=======
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
               <Route path="/tournaments" element={<TournamentsPage tournaments={tournaments} registrations={registrations} />} />
               <Route path="/tournament/:id" element={<TournamentDetailsPage tournaments={tournaments} onRegister={handleRegister} registrations={registrations} />} />
               <Route path="/leaderboard" element={<LeaderboardPage leaderboard={leaderboard} />} />
               <Route path="/streams" element={<StreamsPage streams={streams} />} />
-<<<<<<< HEAD
               <Route path="/news" element={<NewsPage />} />
-=======
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
               <Route path="/profile" element={<ProfilePage tournaments={tournaments} registrations={registrations} leaderboard={leaderboard} />} />
               <Route path="/become-partner" element={<BecomePartnerPage />} />
               <Route path="/legal" element={<LegalLandingPage />} />

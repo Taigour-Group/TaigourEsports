@@ -107,14 +107,9 @@ class BalanceService {
   async getCatalog() {
     try {
       const response = await fetch('/api/catalog');
-<<<<<<< HEAD
       const result = await response.json().catch(() => null);
       if (!response.ok) throw new Error(result?.error || `Failed to fetch catalog (${response.status})`);
       if (!result) throw new Error('Invalid catalog response');
-=======
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to fetch catalog');
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
       return { data: result };
     } catch (error) {
       console.error('Error fetching catalog:', error);

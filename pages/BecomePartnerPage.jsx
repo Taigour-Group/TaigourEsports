@@ -203,11 +203,7 @@ const BecomePartnerPage = () => {
                 ].map((x) => (
                   <div key={x.title} className="p-4 rounded-2xl bg-white/5 border border-white/10">
                     <div className="flex items-center gap-3">
-<<<<<<< HEAD
                       <span className="w-10 h-10 rounded-xl bg-cyan/10 border border-cyann flex items-center justify-center">
-=======
-                      <span className="w-10 h-10 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center">
->>>>>>> 4d66377e1ff24fddce9d174c2e58bdacb49bae89
                         <i className="fa-solid fa-star text-cyan" />
                       </span>
                       <div>
