@@ -1,8 +1,11 @@
 ﻿import React, { useState, useEffect } from 'react';
 import ErrorBox from './ErrorBox.jsx';
+import TgcCoin from './TgcCoin.jsx';
 import { balanceService } from '../services/balanceService';
 import { MEMBERSHIP_BENEFITS, MEMBERSHIP_TIERS, RECHARGE_PACKAGES, ADMIN_WHATSAPP, REQUEST_TYPES, REQUEST_STATUS } from '../constants/balanceConstants';
 import { useAuth } from '../context/AuthContext';
+
+const MEMBERSHIP_BADGE_IMAGE = 'https://res.cloudinary.com/dkoirxf41/image/upload/v1791026411/Golden_Crown_Gaming_Badge-removebg-preview_wt4krc.png';
 
 const PlayerBalance = () => {
   const { user, profile } = useAuth();
@@ -36,10 +39,10 @@ const PlayerBalance = () => {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchBalance();
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     // Pre-fill WhatsApp from profile contact if available (best effort)
@@ -48,12 +51,12 @@ const PlayerBalance = () => {
     }
   }, [profile]);
 
-  const fetchBalance = async (manual = false) => {
-    if (!user) return;
+  const fetchBalance = async (manual = false, forceRefresh = manual) => {
+    if (!user?.id) return;
     if (manual) setRefreshing(true);
-    else setLoading(true);
+    else if (!playerBalance) setLoading(true);
     try {
-      const { data, error } = await balanceService.getPlayerBalance(user.id);
+      const { data, error } = await balanceService.getPlayerBalance(user.id, { refresh: forceRefresh });
       if (!error && data) {
         setPlayerBalance(data);
       }
@@ -61,15 +64,25 @@ const PlayerBalance = () => {
       console.error('Failed to fetch balance:', error);
     } finally {
       if (manual) setRefreshing(false);
-      else setLoading(false);
+      setLoading(false);
     }
   };
 
-  const fetchHistory = async () => {
+  useEffect(() => {
+    const handleBalanceUpdate = (event) => {
+      if (event.detail?.userId === user?.id) {
+        setPlayerBalance(event.detail.data);
+      }
+    };
+    window.addEventListener('player-balance-updated', handleBalanceUpdate);
+    return () => window.removeEventListener('player-balance-updated', handleBalanceUpdate);
+  }, [user?.id]);
+
+  const fetchHistory = async (manual = false) => {
     if (!user) return;
     setHistoryLoading(true);
     try {
-      const { data, error } = await balanceService.getTransactionHistory(user.id, 30);
+      const { data, error } = await balanceService.getTransactionHistory(user.id, 30, { refresh: manual });
       if (!error) setHistory(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error('Failed to fetch history:', e);
@@ -80,7 +93,7 @@ const PlayerBalance = () => {
 
   useEffect(() => {
     if (activeTab === 'history') fetchHistory();
-  }, [activeTab]);
+  }, [activeTab, user?.id]);
 
   const handleRechargeClick = (pkg) => {
     setSelectedPackage(pkg);
@@ -108,7 +121,7 @@ const PlayerBalance = () => {
           package_amount: selectedPackage.amount,
           bonus_amount: selectedPackage.bonus,
           cost: selectedPackage.cost,
-          description: `Recharge request for ◈${selectedPackage.amount} + ◈${selectedPackage.bonus} bonus`,
+          description: `Recharge request for ${selectedPackage.amount} TGC + ${selectedPackage.bonus} TGC bonus`,
           whatsapp_number: requestInfo.whatsapp_number,
           payment_method: requestInfo.payment_method,
           payment_account_number: requestInfo.payment_account_number,
@@ -147,7 +160,7 @@ const PlayerBalance = () => {
           tier: selectedMembership,
           amount: MEMBERSHIP_BENEFITS[selectedMembership].price,
           duration_days: 30,
-          description: `Membership request for ${MEMBERSHIP_BENEFITS[selectedMembership].name} (◈${MEMBERSHIP_BENEFITS[selectedMembership].price})`,
+          description: `Membership request for ${MEMBERSHIP_BENEFITS[selectedMembership].name} (${MEMBERSHIP_BENEFITS[selectedMembership].price} TGC)`,
           whatsapp_number: requestInfo.whatsapp_number,
           payment_method: requestInfo.payment_method,
           payment_account_number: requestInfo.payment_account_number,
@@ -217,8 +230,8 @@ const PlayerBalance = () => {
 
       setSuccessBox('Transfer successful!');
       setTransferForm({ to_player_id: '', amount: '' });
-      await fetchBalance();
-      if (activeTab === 'history') await fetchHistory();
+      await fetchBalance(false, true);
+      if (activeTab === 'history') await fetchHistory(true);
     } catch (e) {
       console.error(e);
       setErrorBox(e.message || 'Transfer failed');
@@ -253,8 +266,13 @@ const PlayerBalance = () => {
           </div>
           <div className="min-w-[180px] rounded-lg border border-cyann bg-[#061521] p-2 text-left md:text-right">
             <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Membership status</div>
-            <div className={`inline-flex items-center justify-center bg-[#061925] px-3 text-base font-bold md:text-lg ${playerBalance?.membership_tier === 'none' ? 'text-gray-400' : 'text-yellow-400'}`}>
-              {catalogMemberships[playerBalance?.membership_tier]?.name || 'Free Player'}
+            <div className={`inline-flex items-center justify-center gap-2 rounded-md bg-[#061925] px-3 py-1.5 text-base font-bold md:text-lg ${playerBalance?.membership_tier === 'none' ? 'text-gray-400' : 'text-yellow-400'}`}>
+              <img
+                src={MEMBERSHIP_BADGE_IMAGE}
+                alt="Membership badge"
+                className="h-5 w-5 object-contain drop-shadow-[0_0_10px_rgba(250,204,21,0.7)] md:h-6 md:w-6"
+              />
+              <span>{catalogMemberships[playerBalance?.membership_tier]?.name || 'Free Player'}</span>
             </div>
             {playerBalance?.membership_expires_at && playerBalance?.membership_tier !== 'none' && (
               <div className="text-xs text-slate-500">Expires: {getMembershipExpiry()}</div>
@@ -267,11 +285,17 @@ const PlayerBalance = () => {
             <div>
               <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-slate-400">Available balance</div>
               <div className="mt-2 flex items-center gap-3">
-                <div className="font-orbitron text-2xl font-black text-[#2ce9ff] md:text-4xl">◈ {playerBalance?.balance?.toLocaleString() || '0'}</div>
+                <div className="flex items-center gap-2 font-orbitron text-2xl font-black text-[#2ce9ff] md:text-4xl">
+                  <TgcCoin className="h-6 w-6 md:h-8 md:w-8" />
+                  <span>{playerBalance?.balance?.toLocaleString() || '0'}</span>
+                </div>
                 <span className="font-space text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">TGC</span>
                 <button
                   type="button"
-                  onClick={() => fetchBalance(true)}
+                  onClick={() => {
+                    fetchBalance(true);
+                    if (activeTab === 'history') fetchHistory(true);
+                  }}
                   disabled={refreshing || loading}
                   className={`rounded-lg text-sm text-white transition-all ${refreshing || loading ? 'cursor-not-allowed opacity-60' : 'hover:text-cyan'}`}
                   aria-label="Refresh balance"
@@ -292,9 +316,10 @@ const PlayerBalance = () => {
               <button
                 type="button"
                 onClick={() => setShowMembershipModal(true)}
-                className="rounded-md border border-cyann bg-cyan-400/5 px-4 py-2 font-space text-[10px] font-black uppercase tracking-[0.18em] text-white transition-all hover:border-cyann hover:text-cyan"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-cyann bg-cyan-400/5 px-4 py-2 font-space text-[10px] font-black uppercase tracking-[0.18em] text-white transition-all hover:border-cyann hover:text-cyan"
               >
-                <i className="fa-solid fa-crown mr-2" />Get Membership
+                <img src={MEMBERSHIP_BADGE_IMAGE} alt="Membership" className="h-4 w-4 object-contain" />
+                <span>Get Membership</span>
               </button>
             </div>
           </div>
@@ -332,7 +357,7 @@ const PlayerBalance = () => {
                 <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">Choose a package that fits your needs.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 min-[480px]:grid-cols-3 xl:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 min-[480px]:grid-cols-4 xl:grid-cols-5">
                 {catalogRechargePackages.map((pkg, idx) => (
                   <div
                     key={idx}
@@ -348,9 +373,14 @@ const PlayerBalance = () => {
                       <i className={`fa-solid ${pkg.icon}`} />
                     </div>
                     <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.22em] text-slate-400">Package</div>
-                    <div className="font-space text-xl font-black text-white md:text-2xl">◈ {pkg.amount} TGC</div>
-                    <div className="my-2 text-[10px] font-bold text-cyan">
-                      <i className="fa-solid fa-gift mr-2" />+◈ {pkg.bonus} Bonus
+                    <div className="flex items-center gap-2 font-space text-xl font-black text-white md:text-2xl">
+                      <TgcCoin className="h-5 w-5 md:h-6 md:w-6" />
+                      <span>{pkg.amount} TGC</span>
+                    </div>
+                    <div className="my-2 flex items-center gap-1 text-[10px] font-bold text-cyan">
+                      <i className="fa-solid fa-gift mr-1" />
+                      <TgcCoin className="h-3.5 w-3.5" />
+                      <span>+{pkg.bonus} Bonus</span>
                     </div>
                     <div className="rounded-sm bg-[#081a26] px-2 py-2 text-[10px] text-slate-300">
                       Total Cost: <span className="font-bold text-yellow-400">रु {pkg.cost}</span>
@@ -372,46 +402,82 @@ const PlayerBalance = () => {
           )}
 
           {activeTab === 'membership' && (
-            <div className="space-y-3 pt-1">
-              <h4 className="font-space text-lg font-black uppercase tracking-[0.12em] text-white">Membership plans</h4>
-              <div className="space-y-3">
-                {Object.entries(catalogMemberships).map(([key, benefit]) => (
-                  <div
-                    key={key}
-                    className={`cursor-pointer rounded-lg border p-4 transition-all ${
-                      playerBalance?.membership_tier === key
-                        ? 'border-cyan-400/60 bg-cyan-400/5'
-                        : 'border-cyan-400/15 bg-[#06111a] hover:border-cyan-400/40'
-                    }`}
-                    onClick={() => {
-                      if (playerBalance?.membership_tier !== key) {
+            <div className="space-y-4 pt-1">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h4 className="font-space text-lg font-black uppercase tracking-[0.12em] text-white">Membership plans</h4>
+                  <p className="mt-1 text-xs text-slate-400">Choose a plan to see its details and request an upgrade.</p>
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Prices in TGC</span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {Object.entries(catalogMemberships).map(([key, benefit]) => {
+                  const isActive = playerBalance?.membership_tier === key;
+                  const planBenefits = Array.isArray(benefit.benefits) ? benefit.benefits : [];
+                  const isFreePlan = Number(benefit.price) === 0;
+
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={isActive}
+                      onClick={() => {
                         setSelectedMembership(key);
                         setShowMembershipModal(true);
-                      }
-                    }}
-                  >
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div>
-                        <h5 className="font-space text-xl font-black uppercase text-white">{benefit.name}</h5>
-                        <div className="mt-1 text-sm font-bold text-cyan">à¤°à¥ {benefit.price}</div>
+                      }}
+                      className={`group flex h-full flex-col rounded-xl border p-4 text-left transition-colors ${
+                        isActive
+                          ? 'border-cyan-400/50 bg-cyan-400/[0.06]'
+                          : 'border-white/10 bg-[#071621] hover:border-cyan-400/40 hover:bg-[#091c29]'
+                      }`}
+                    >
+                      <div className="flex w-full items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          {benefit.isPopular && (
+                            <span className="mb-2 inline-flex rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">
+                              Popular
+                            </span>
+                          )}
+                          <h5 className="font-space text-base font-black uppercase leading-tight text-white">{benefit.name}</h5>
+                        </div>
+                        {isActive && (
+                          <span className="shrink-0 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-cyan-300">
+                            Current
+                          </span>
+                        )}
                       </div>
-                      {playerBalance?.membership_tier === key && (
-                        <div className="rounded-md border border-cyan-400/60 bg-cyan-400/10 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-cyan">
-                          Active
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="space-y-2 text-sm text-slate-300">
-                      {benefit.benefits.map((b, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <i className="fa-solid fa-star mt-1 text-yellow-400" />
-                          <span>{b}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                      <div className="mt-3 flex items-baseline gap-1.5">
+                        <span className="text-xl font-orbitron font-black text-cyan-300">{Number(benefit.price || 0).toLocaleString()}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TGC</span>
+                      </div>
+
+                      <div className="my-3 h-px w-full bg-white/10" />
+
+                      <div className="flex-1 space-y-2">
+                        {planBenefits.length > 0 ? planBenefits.map((item, idx) => (
+                          <div key={`${key}-benefit-${idx}`} className="flex items-start gap-2 text-xs leading-relaxed text-slate-300">
+                            <i className="fa-solid fa-check mt-0.5 text-[10px] text-cyan-400" />
+                            <span>{item}</span>
+                          </div>
+                        )) : (
+                          <p className="text-xs text-slate-500">Plan details coming soon.</p>
+                        )}
+                      </div>
+
+                      <span className={`mt-4 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        isActive
+                          ? 'bg-white text-slate-800'
+                          : isFreePlan
+                            ? 'border border-white/10 text-slate-300 group-hover:border-cyan-400/40 group-hover:text-white'
+                            : 'bg-cyan-400 text-cyan-300 group-hover:bg-cyan group-hover:text-slate-900'
+                      }`}>
+                        {isActive ? 'Current plan' : isFreePlan ? 'Free plan' : 'Select plan'}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -420,7 +486,10 @@ const PlayerBalance = () => {
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               <div className="rounded-lg border border-cyan-400/15 bg-[#06111a] p-4">
                 <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">Total Spent</div>
-                <div className="mt-2 font-orbitron text-2xl font-black text-pink">◈ {playerBalance?.total_spent?.toLocaleString() || '0'}</div>
+                <div className="mt-2 flex items-center gap-2 font-orbitron text-2xl font-black text-pink">
+                  <TgcCoin className="h-5 w-5 md:h-6 md:w-6" />
+                  <span>{playerBalance?.total_spent?.toLocaleString() || '0'}</span>
+                </div>
               </div>
               <div className="rounded-lg border border-white/10 bg-[#06111a] p-4">
                 <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">Member Since</div>
@@ -456,7 +525,7 @@ const PlayerBalance = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">Amount (◈)</label>
+                    <label className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">Amount (TGC)</label>
                     <input
                       value={transferForm.amount}
                       onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
@@ -503,7 +572,9 @@ const PlayerBalance = () => {
                           </div>
                         </div>
                         <div className={`font-orbitron font-black ${isOut ? 'text-pink-400' : 'text-cyan-400'}`}>
-                          {isOut ? '-' : '+'}◈ {Math.abs(amount).toLocaleString()}
+                          {isOut ? '-' : '+'}
+                          <TgcCoin className="ml-1 mr-1 inline h-3.5 w-3.5 align-middle" />
+                          {Math.abs(amount).toLocaleString()}
                         </div>
                       </div>
                     );
@@ -538,16 +609,23 @@ const PlayerBalance = () => {
               <div className="space-y-4 mb-6 p-4 bg-white/5 rounded-lg border border-cyan-400/10">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Package amount:</span>
-                  <span className="font-bold text-white">◈ {selectedPackage.amount}</span>
+                  <span className="flex items-center gap-1.5 font-bold text-white">
+                    <TgcCoin className="h-4 w-4" />
+                    <span>{selectedPackage.amount}</span>
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Bonus:</span>
-                  <span className="font-bold text-primary">+◈ {selectedPackage.bonus}</span>
+                  <span className="flex items-center gap-1.5 font-bold text-primary">
+                    <TgcCoin className="h-4 w-4" />
+                    <span>+{selectedPackage.bonus}</span>
+                  </span>
                 </div>
                 <div className="border-t border-cyan-400/10 pt-4 flex justify-between">
                   <span className="font-bold text-white">Total:</span>
-                  <span className="font-orbitron font-black text-yellow-400 text-lg">
-                    ◈ {selectedPackage.amount + selectedPackage.bonus}
+                  <span className="flex items-center gap-1.5 font-orbitron font-black text-yellow-400 text-lg">
+                    <TgcCoin className="h-5 w-5" />
+                    <span>{selectedPackage.amount + selectedPackage.bonus}</span>
                   </span>
                 </div>
               </div>
@@ -635,109 +713,132 @@ const PlayerBalance = () => {
 
       {/* Membership Modal */}
       {showMembershipModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-bg-card border border-cyan-400/15 rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-orbitron font-black text-white mb-2">
-              <i className="fa-brands fa-whatsapp text-green-400 mr-2"></i>Get Membership
-            </h3>
-            <p className="text-gray-400 text-sm mb-4">Please contact us via WhatsApp to complete your purchase</p>
-
-            {selectedMembership && (
-              <div className="space-y-4 mb-6 p-4 bg-white/5 rounded-lg border border-cyan-400/10">
-                <div className="text-lg font-bold text-white">
-                  {catalogMemberships[selectedMembership]?.name || 'Membership'}
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Price:</span>
-                  <span className="font-orbitron font-black text-primary">
-                    ◈ {catalogMemberships[selectedMembership]?.price || 0}
-                  </span>
-                </div>
-                <div className="border-t border-white/10 pt-4">
-                  <div className="text-sm font-bold text-gray-300 mb-2">Benefits:</div>
-                  {(catalogMemberships[selectedMembership]?.benefits || []).map((b, idx) => (
-                    <div key={idx} className="text-sm text-gray-400 mb-1">
-                      <i className="fa-solid fa-check text-primary mr-2"></i>{b}
-                    </div>
-                  ))}
+        <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-black/75 p-3 backdrop-blur-sm sm:p-5">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="membership-modal-title"
+            className="my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-cyan-400/20 bg-[#081925] shadow-[0_16px_48px_rgba(0,0,0,0.5)] sm:max-h-[calc(100dvh-2.5rem)]"
+          >
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
+              <div className="flex items-center gap-2.5">
+                <img src={MEMBERSHIP_BADGE_IMAGE} alt="" className="h-7 w-7 object-contain" />
+                <div>
+                  <h3 id="membership-modal-title" className="font-orbitron text-base font-bold text-white">Get Membership</h3>
+                  <p className="mt-0.5 text-[11px] text-slate-400">Review your plan and payment details.</p>
                 </div>
               </div>
-            )}
-
-            {/* Payment details (required) */}
-            <div className="space-y-3 mb-4">
-              <div>
-                <label className="text-gray-500 text-xs uppercase tracking-widest">WhatsApp Number</label>
-                <input
-                  value={requestInfo.whatsapp_number}
-                  onChange={(e) => setRequestInfo(prev => ({ ...prev, whatsapp_number: e.target.value }))}
-                  placeholder="+97798XXXXXXXX"
-                  className="w-full mt-1 bg-white/5 border border-cyan-400/10 rounded-lg px-3 py-2 text-white outline-none focus:border-primary text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-gray-500 text-xs uppercase tracking-widest">Payment Method</label>
-                <select
-                  value={requestInfo.payment_method}
-                  onChange={(e) => setRequestInfo(prev => ({ ...prev, payment_method: e.target.value }))}
-                  className="w-full mt-1 bg-white/5 border border-cyan-400/10 rounded-lg px-3 py-2 text-white outline-none focus:border-primary text-sm"
-                >
-                  <option value="esewa">eSewa</option>
-                  <option value="khalti">Khalti</option>
-                  <option value="bank">Bank</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-gray-500 text-xs uppercase tracking-widest">Account Number</label>
-                <input
-                  value={requestInfo.payment_account_number}
-                  onChange={(e) => setRequestInfo(prev => ({ ...prev, payment_account_number: e.target.value }))}
-                  placeholder="98XXXXXXXX / 01-XXXXXX / etc"
-                  className="w-full mt-1 bg-white/5 border border-cyan-400/10 rounded-lg px-3 py-2 text-white outline-none focus:border-primary text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-gray-500 text-xs uppercase tracking-widest">Account Owner Name</label>
-                <input
-                  value={requestInfo.payment_account_owner}
-                  onChange={(e) => setRequestInfo(prev => ({ ...prev, payment_account_owner: e.target.value }))}
-                  placeholder="Owner full name"
-                  className="w-full mt-1 bg-white/5 border border-cyan-400/10 rounded-lg px-3 py-2 text-white outline-none focus:border-primary text-sm"
-                />
-              </div>
-            </div>
-
-            {/* WhatsApp Contact Info */}
-            <div className="bg-green-400/10 border border-green-400/20 rounded-lg p-4 mb-4">
-              <div className="text-sm text-white mb-2">
-                <i className="fa-solid fa-phone mr-2 text-green-400"></i>
-                <span className="font-bold">{ADMIN_WHATSAPP.displayNumber}</span>
-              </div>
-              <p className="text-xs text-gray-400">Click below to start WhatsApp chat</p>
-            </div>
-
-            <div className="flex gap-3 flex-col">
               <button
-                onClick={openWhatsAppChat}
-                className="w-full px-4 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-all flex items-center justify-center gap-2"
-              >
-                <i className="fa-brands fa-whatsapp text-lg"></i>
-                Contact on WhatsApp
-              </button>
-              <button
-                onClick={submitMembershipRequest}
-                className="w-full px-4 py-2 bg-primary text-dark rounded font-bold hover:bg-primary/80"
-              >
-                Submit Request
-              </button>
-              <button
+                type="button"
                 onClick={() => {
                   setShowMembershipModal(false);
                   setSelectedMembership(null);
                 }}
-                className="w-full px-4 py-2 bg-white/5 text-white rounded font-bold hover:bg-white/10"
+                aria-label="Close membership form"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 custom-scrollbar">
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Selected plan</p>
+                  <p className="mt-0.5 truncate font-orbitron text-sm font-bold text-white">
+                    {catalogMemberships[selectedMembership]?.name || 'Membership'}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5 font-orbitron text-sm font-bold text-cyan-300">
+                  <TgcCoin className="h-4 w-4" />
+                  <span>{catalogMemberships[selectedMembership]?.price || 0} TGC</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2.5 flex items-center justify-between">
+                  <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-300">Payment details</h4>
+                  <span className="text-[9px] text-slate-500">All fields required</span>
+                </div>
+                <div className="grid gap-x-3 gap-y-2.5 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-medium text-slate-400">WhatsApp number</label>
+                    <input
+                      value={requestInfo.whatsapp_number}
+                      onChange={(e) => setRequestInfo(prev => ({ ...prev, whatsapp_number: e.target.value }))}
+                      placeholder="+97798XXXXXXXX"
+                      className="mt-1 w-full rounded-md border border-white/10 bg-[#0d2230] px-3 py-2 text-xs text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-400/60"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-400">Payment method</label>
+                    <select
+                      value={requestInfo.payment_method}
+                      onChange={(e) => setRequestInfo(prev => ({ ...prev, payment_method: e.target.value }))}
+                      className="mt-1 w-full rounded-md border border-white/10 bg-[#0d2230] px-3 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-400/60"
+                    >
+                      <option value="esewa" className="bg-black text-white">eSewa</option>
+                      <option value="khalti" className="bg-black text-white">Khalti</option>
+                      <option value="bank" className="bg-black text-white">Bank</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-400">Account number</label>
+                    <input
+                      value={requestInfo.payment_account_number}
+                      onChange={(e) => setRequestInfo(prev => ({ ...prev, payment_account_number: e.target.value }))}
+                      placeholder="Your payment account number"
+                      className="mt-1 w-full rounded-md border border-white/10 bg-[#0d2230] px-3 py-2 text-xs text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-400/60"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-medium text-slate-400">Account owner name</label>
+                    <input
+                      value={requestInfo.payment_account_owner}
+                      onChange={(e) => setRequestInfo(prev => ({ ...prev, payment_account_owner: e.target.value }))}
+                      placeholder="Name registered to the account"
+                      className="mt-1 w-full rounded-md border border-white/10 bg-[#0d2230] px-3 py-2 text-xs text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-400/60"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-lg border border-emerald-400/15 bg-emerald-400/[0.06] px-3 py-2.5">
+                <i className="fa-brands fa-whatsapp mt-0.5 text-xs text-emerald-400"></i>
+                <p className="text-[11px] leading-relaxed text-slate-300">
+                  Need help? Contact us on WhatsApp at <span className="font-semibold text-white">{ADMIN_WHATSAPP.displayNumber}</span> to confirm your payment.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-white/10 bg-[#071621] px-4 py-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMembershipModal(false);
+                  setSelectedMembership(null);
+                }}
+                className="rounded-md border border-white/10 px-3.5 py-2 text-xs font-semibold text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
               >
                 Cancel
+              </button>
+              <button
+                type="button"
+                onClick={openWhatsAppChat}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-green-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-green-500"
+              >
+                <i className="fa-brands fa-whatsapp"></i>
+                WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={submitMembershipRequest}
+                className="rounded-md bg-cyan-400 px-4 py-2 text-xs font-bold text-[#041018] transition-colors hover:bg-cyan-300"
+              >
+                Submit request
               </button>
             </div>
           </div>
@@ -748,4 +849,3 @@ const PlayerBalance = () => {
 };
 
 export default PlayerBalance;
-

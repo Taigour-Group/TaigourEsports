@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { adminFetch } from '../services/adminAuth';
 import { REQUEST_TYPES, REQUEST_STATUS, MEMBERSHIP_BENEFITS, ADMIN_WHATSAPP } from '../constants/balanceConstants';
 import ErrorBox from './ErrorBox.jsx';
+import TgcCoin, { TGC_COIN_IMAGE } from './TgcCoin.jsx';
 
 const BRAND = {
   name: 'Taigour E-Sports',
@@ -121,15 +122,15 @@ const AdminRequestsPanel = () => {
       lines.push({ label: 'Account verification fee', value: `NPR ${Number(request.amount) || 50}` });
       lines.push({ label: 'Payment review', value: request.status === REQUEST_STATUS.APPROVED ? 'Approved' : 'Awaiting admin review' });
     } else if (request.type === REQUEST_TYPES.RECHARGE) {
-      lines.push({ label: 'Package amount', value: `◈ ${request.package_amount || 0}` });
-      lines.push({ label: 'Bonus', value: `◈ ${request.bonus_amount || 0}` });
-      lines.push({ label: 'Total credited', value: `◈ ${request.amount || 0}` });
+      lines.push({ label: 'Package amount', value: `${request.package_amount || 0} TGC` });
+      lines.push({ label: 'Bonus', value: `${request.bonus_amount || 0} TGC` });
+      lines.push({ label: 'Total credited', value: `${request.amount || 0} TGC` });
       if (request.cost) lines.push({ label: 'Paid (NPR)', value: `रु ${request.cost}` });
     } else {
       const tierName = MEMBERSHIP_BENEFITS[request.tier]?.name || request.tier || 'Membership';
       lines.push({ label: 'Plan', value: tierName });
       lines.push({ label: 'Duration', value: `${request.duration_days || 30} days` });
-      lines.push({ label: 'Amount', value: `◈ ${request.amount || 0}` });
+      lines.push({ label: 'Amount', value: `${request.amount || 0} TGC` });
     }
 
     const rowsHtml = lines.map(l => `
@@ -293,7 +294,10 @@ const AdminRequestsPanel = () => {
           </div>
           <div className="rounded-lg border border-cyann bg-[#091a2b] p-3">
             <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Total amount</div>
-            <div className="mt-1 font-orbitron text-xl font-black text-slate-100">◈ {totalamount.toLocaleString()}</div>
+            <div className="mt-1 flex items-center gap-2 font-orbitron text-xl font-black text-slate-100">
+              <TgcCoin className="h-5 w-5" />
+              <span>{totalamount.toLocaleString()}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -348,7 +352,10 @@ const AdminRequestsPanel = () => {
                 {/* Center: amount & Type */}
                 <div className="min-w-0 text-right">
                   {request.type !== 'verification' && (
-                    <div className="whitespace-nowrap font-orbitron text-lg font-black text-primary">◈ {request.amount}</div>
+                    <div className="flex items-center justify-end gap-1.5 whitespace-nowrap font-orbitron text-lg font-black text-primary">
+                      <TgcCoin className="h-4 w-4" />
+                      <span>{request.amount}</span>
+                    </div>
                   )}
                   <div className="text-xs text-gray-400">{getTypeLabel(request.type)}</div>
                 </div>
@@ -400,15 +407,24 @@ const AdminRequestsPanel = () => {
                       <>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-400">Package amount:</span>
-                          <span className="font-bold">◈ {request.package_amount}</span>
+                          <span className="flex items-center gap-1.5 font-bold">
+                            <TgcCoin className="h-4 w-4" />
+                            <span>{request.package_amount}</span>
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-400">Bonus amount:</span>
-                          <span className="font-bold text-primary">+◈ {request.bonus_amount}</span>
+                          <span className="flex items-center gap-1.5 font-bold text-primary">
+                            <TgcCoin className="h-4 w-4" />
+                            <span>+{request.bonus_amount}</span>
+                          </span>
                         </div>
                         <div className="border-t border-white/10 pt-2 flex justify-between text-sm font-bold">
                           <span>Total to Add:</span>
-                          <span className="text-yellow-400">◈ {request.amount}</span>
+                          <span className="flex items-center gap-1.5 text-yellow-400">
+                            <TgcCoin className="h-4 w-4" />
+                            <span>{request.amount}</span>
+                          </span>
                         </div>
                       </>
                     ) : (
@@ -419,7 +435,10 @@ const AdminRequestsPanel = () => {
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-400">Price:</span>
-                          <span className="font-bold text-primary">◈ {request.amount}</span>
+                          <span className="flex items-center gap-1.5 font-bold text-primary">
+                            <TgcCoin className="h-4 w-4" />
+                            <span>{request.amount}</span>
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-400">Duration:</span>

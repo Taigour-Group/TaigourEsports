@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { balanceService } from '../services/balanceService';
+import TgcCoin from './TgcCoin.jsx';
 
 const Header = () => {
   const { user, profile, loading, loginWithGoogle, loginWithApple, loginWithFacebook, logout } = useAuth();
@@ -44,6 +45,16 @@ const Header = () => {
     fetchedBalanceRef.current = true;
     fetchBalance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handleBalanceUpdate = (event) => {
+      if (event.detail?.userId === user?.id) {
+        setPlayerBalance(event.detail.data);
+      }
+    };
+    window.addEventListener('player-balance-updated', handleBalanceUpdate);
+    return () => window.removeEventListener('player-balance-updated', handleBalanceUpdate);
   }, [user?.id]);
 
   // Close user menu when clicking outside
@@ -168,10 +179,10 @@ const Header = () => {
                   }}
                   id="user-menu-button"
                 >
-                  <div className="flex items-center gap-1">
-                    <i className="fa-solid fa-wallet text-primary text-xs"></i>
+                  <div className="flex items-center gap-1.5">
+                    <TgcCoin className="h-3.5 w-3.5 shrink-0" />
                     <span className="font-orbitron font-bold text-[10px] text-primary uppercase tracking-wider">
-                      ◈ {playerBalance?.balance?.toLocaleString() || '0'}
+                      {playerBalance?.balance?.toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="relative">
@@ -208,9 +219,9 @@ const Header = () => {
                   >
                     <div className="px-4 py-3 border-b border-white/5">
                       <p className="font-orbitron font-bold text-xs text-white truncate">{getUserDisplayName()}</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <i className="fa-solid fa-wallet text-primary text-[9px]"></i>
-                        <p className="text-[10px] text-primary font-bold">◈ {playerBalance?.balance?.toLocaleString() || '0'}</p>
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <TgcCoin className="h-3 w-3 shrink-0" />
+                        <p className="text-[10px] text-primary font-bold">{playerBalance?.balance?.toLocaleString() || '0'}</p>
                       </div>
                       <p className="text-[10px] text-gray-500 truncate mt-0.5">{user.email}</p>
                     </div>
@@ -278,16 +289,16 @@ const Header = () => {
             ) : user ? (
               <div className="flex items-center gap-2">
                 {/* Balance display */}
-                <div className="flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-full relative"
+                <div className="flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-full relative"
                   style={{
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.07)',
                   }}
                   ref={balanceTooltipRef}
                 >
-                  <i className="fa-solid fa-wallet text-primary text-[12px]"></i>
+                  <TgcCoin className="h-3.5 w-3.5 shrink-0" />
                   <span className="font-orbitron font-bold text-[12px] text-white uppercase tracking-wider">
-                    ◈ {playerBalance?.balance?.toLocaleString() || '0'}
+                    {playerBalance?.balance?.toLocaleString() || '0'}
                   </span> 
                   <button
                     onClick={() => setShowBalanceTooltip(!showBalanceTooltip)}

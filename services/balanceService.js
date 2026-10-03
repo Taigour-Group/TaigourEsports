@@ -1,12 +1,48 @@
 import { adminFetch } from './adminAuth';
 
 class BalanceService {
+  constructor() {
+    this.playerBalanceCache = new Map();
+    this.playerBalanceRequests = new Map();
+    this.transactionHistoryCache = new Map();
+    this.transactionHistoryRequests = new Map();
+  }
+
   // Get player balance and membership info
-  async getPlayerBalance(userId) {
+  async getPlayerBalance(userId, { refresh = false } = {}) {
+    if (!userId) return { error: new Error('A user ID is required to fetch balance') };
+
+    if (!refresh && this.playerBalanceCache.has(userId)) {
+      return { data: this.playerBalanceCache.get(userId) };
+    }
+
+    if (!refresh && this.playerBalanceRequests.has(userId)) {
+      return this.playerBalanceRequests.get(userId);
+    }
+
+    const request = this.fetchPlayerBalance(userId, refresh);
+    if (!refresh) this.playerBalanceRequests.set(userId, request);
+
     try {
-      const response = await fetch(`/api/balance/${userId}`);
+      return await request;
+    } finally {
+      if (this.playerBalanceRequests.get(userId) === request) {
+        this.playerBalanceRequests.delete(userId);
+      }
+    }
+  }
+
+  async fetchPlayerBalance(userId, refresh) {
+    try {
+      const response = await fetch(`/api/balance/${userId}`, {
+        cache: refresh ? 'no-store' : 'no-cache'
+      });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to fetch balance');
+      this.playerBalanceCache.set(userId, result);
+      window.dispatchEvent(new CustomEvent('player-balance-updated', {
+        detail: { userId, data: result }
+      }));
       return { data: result };
     } catch (error) {
       console.error('Error in getPlayerBalance:', error);
@@ -14,13 +50,43 @@ class BalanceService {
     }
   }
 
+  invalidatePlayerBalance(userId) {
+    if (userId) this.playerBalanceCache.delete(userId);
+  }
+
   // Get transaction history
-  async getTransactionHistory(userId, limit = 50) {
+  async getTransactionHistory(userId, limit = 50, { refresh = false } = {}) {
+    const cacheKey = `${userId}:${limit}`;
+    if (!refresh && this.transactionHistoryCache.has(cacheKey)) {
+      return { data: this.transactionHistoryCache.get(cacheKey) };
+    }
+
+    if (!refresh && this.transactionHistoryRequests.has(cacheKey)) {
+      return this.transactionHistoryRequests.get(cacheKey);
+    }
+
+    const request = this.fetchTransactionHistory(userId, limit, cacheKey, refresh);
+    if (!refresh) this.transactionHistoryRequests.set(cacheKey, request);
+
     try {
-      const response = await fetch(`/api/transactions/${userId}?limit=${limit}`);
+      return await request;
+    } finally {
+      if (this.transactionHistoryRequests.get(cacheKey) === request) {
+        this.transactionHistoryRequests.delete(cacheKey);
+      }
+    }
+  }
+
+  async fetchTransactionHistory(userId, limit, cacheKey, refresh) {
+    try {
+      const response = await fetch(`/api/transactions/${userId}?limit=${limit}`, {
+        cache: refresh ? 'no-store' : 'no-cache'
+      });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to fetch transactions');
-      return { data: result || [] };
+      const data = result || [];
+      this.transactionHistoryCache.set(cacheKey, data);
+      return { data };
     } catch (error) {
       console.error('Error fetching transactions:', error);
       return { error };
@@ -63,6 +129,7 @@ class BalanceService {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Failed to update balance');
+      this.invalidatePlayerBalance(userId);
       return { data: result.data };
     } catch (error) {
       console.error('Error in adminUpdateBalance:', error);
@@ -80,6 +147,7 @@ class BalanceService {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Failed to update membership');
+      this.invalidatePlayerBalance(userId);
       return { data: result.data };
     } catch (error) {
       console.error('Error in adminUpdateMembership:', error);

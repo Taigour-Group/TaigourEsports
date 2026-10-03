@@ -166,11 +166,11 @@ const AdminPanel = ({
   // Initial States for New Records
   const initialTournament = {
     title: '', game: 'Free Fire', type: 'freefire', location: 'Nepal',
-    prize: '◈ 1,000', entry_fee: '◈ 100', date: '', time: '07:00 PM',
+    prize: 'TGC 1,000', entry_fee: 'TGC 100', date: '', time: '07:00 PM',
     registration_start_date: '', registration_end_date: '',
     registration_url: '#', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=800',
     description: '', rules: ['No Emulators allowed', 'Fair play protocol active'],
-    prize_breakdown: [{ position: '1st', reward: '◈ 600' }, { position: '2nd', reward: '◈ 400' }],
+    prize_breakdown: [{ position: '1st', reward: 'TGC 600' }, { position: '2nd', reward: 'TGC 400' }],
     max_slots: 48, stream_id: '',
     login_required: true, payment_type: 'tgc_coin', team_size: 4,
     registration_fields: { ...DEFAULT_REGISTRATION_FIELDS }
@@ -855,7 +855,7 @@ const AdminPanel = ({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {[
                     { label: 'Registered Players', value: stats.totalPlayers.toLocaleString(), note: 'Player database', icon: 'fa-users', color: 'text-cyan-300' },
-                    { label: 'Prize Pool', value: `◈ ${stats.totalPrize.toLocaleString()}`, note: 'Across all tournaments', icon: 'fa-trophy', color: 'text-amber-300' },
+                    { label: 'Prize Pool', value: `${stats.totalPrize.toLocaleString()} TGC`, note: 'Across all tournaments', icon: 'fa-trophy', color: 'text-amber-300' },
                     { label: 'Tournaments', value: stats.activeTourneys.toLocaleString(), note: 'Currently listed', icon: 'fa-crosshairs', color: 'text-emerald-300' }
                   ].map((stat) => (
                     <div key={stat.label} className="relative flex min-h-28 items-center justify-between overflow-hidden rounded-xl border border-cyann bg-[#071625] p-4 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-cyan-400 sm:p-5">
@@ -976,7 +976,7 @@ const AdminPanel = ({
                           <div className="flex justify-between items-start gap-2">
                             <div>
                               <div className="text-xs font-bold text-white">{item.name}</div>
-                              <div className="text-[10px] text-gray-400">Slug: {item.slug} • Price: ◈ {item.price} • Order: {item.sort_order}</div>
+                              <div className="text-[10px] text-gray-400">Slug: {item.slug} • Price: {item.price} TGC • Order: {item.sort_order}</div>
                             </div>
                             <div className="flex gap-2">
                               <button onClick={() => startCatalogEdit(item, 'membership')} className="rounded-md border border-cyann bg-cyan-400/10 px-2.5 py-1.5 text-[10px] font-bold text-cyan-300 transition-colors hover:bg-cyan-400 hover:text-[#031018]">Edit</button>
@@ -1008,7 +1008,7 @@ const AdminPanel = ({
                         <div key={item.id} className="rounded-lg border border-cyann bg-[#091a2b] p-3">
                           <div className="flex justify-between items-start gap-2">
                             <div>
-                              <div className="text-xs font-bold text-white">◈ {item.amount} + ◈ {item.bonus}</div>
+                              <div className="text-xs font-bold text-white">{item.amount} TGC + {item.bonus} TGC</div>
                               <div className="text-[10px] text-gray-400">Cost: रु {item.cost} • Order: {item.sort_order}</div>
                             </div>
                             <div className="flex gap-2">

@@ -149,10 +149,10 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
             <div className="absolute -inset-1 bg-primary/20 blur-md rounded-2xl -z-10"></div>
           </div>
 
-          <h1 className="text-2xl md:text-3xl font-orbitron font-black text-white uppercase tracking-tight mb-3">
+          <h1 className="text-xl font-orbitron font-black text-white uppercase tracking-tight mb-3 sm:text-2xl">
             SECTOR <span className="text-primary">RESTRICTED</span>
           </h1>
-          <p className="text-gray-400 font-rajdhani text-base md:text-lg mb-8 leading-relaxed uppercase tracking-wider">
+          <p className="text-sm text-gray-400 font-rajdhani mb-8 leading-relaxed uppercase tracking-wider sm:text-base">
             Warrior authentication is required to access the profile dashboard. Connect your account to enter.
           </p>
 
@@ -301,13 +301,13 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
             <div className="mt-1 min-w-0 flex-1 space-y-2 text-center sm:text-left">
               <p className="font-space text-[9px] font-bold uppercase tracking-[0.24em] text-cyan">Player Profile</p>
               <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <h1 className="break-words font-space text-3xl font-black uppercase leading-none text-white sm:text-4xl md:text-5xl">
+                <h1 className="break-words font-space text-2xl font-black uppercase leading-tight text-white sm:text-3xl md:text-4xl">
                   {profile?.full_name || user.user_metadata?.full_name || 'Player One'}
                 </h1>
                 {profile?.verified === true && (
                   <svg
                     viewBox="0 0 24 24"
-                    className="h-6 w-6 shrink-0 text-cyan"
+                    className="h-5 w-5 shrink-0 text-cyan sm:h-6 sm:w-6"
                     fill="currentColor"
                     role="img"
                     aria-label="Verified account"
@@ -317,7 +317,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                   </svg>
                 )}
               </div>
-              <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-rajdhani text-sm text-slate-300 sm:justify-start md:text-base">
+              <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-rajdhani text-xs text-slate-300 sm:justify-start sm:text-sm">
                 <span className="break-all">{user.email}</span>
                 <span className="hidden text-cyan/50 sm:inline">/</span>
                 <span className="font-rajdhani text-xs uppercase text-slate-400">
@@ -379,7 +379,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                 <span className="block font-space text-[8px] font-bold uppercase text-slate-400 md:text-[9px]">
                   {stat.label}
                 </span>
-                <span className="block font-space text-lg font-black leading-none text-white md:text-2xl">
+                <span className="block font-space text-base font-black leading-none text-white md:text-xl">
                   {stat.val}
                 </span>
               </div>
@@ -459,7 +459,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
             {activeTab === 'deployments' && (
               <div className="space-y-6">
                 <div className="border-b border-white/5 pb-4">
-                  <h3 className="font-orbitron font-bold text-xl text-white uppercase tracking-tight">
+                  <h3 className="font-orbitron text-base font-bold uppercase tracking-tight text-white sm:text-lg">
                     ACTIVE SCRIMS & TOURNAMENTS
                   </h3>
                   <p className="text-gray-500 font-rajdhani text-xs uppercase tracking-widest mt-1">
@@ -545,7 +545,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
             {activeTab === 'settings' && (
               <div className="space-y-6 p-2 md:p-6">
                 <div className="border-b border-white/5 pb-4">
-                  <h3 className="font-orbitron font-bold text-xl text-white uppercase tracking-tight">
+                  <h3 className="font-orbitron text-base font-bold uppercase tracking-tight text-white sm:text-lg">
                     WARRIOR SHEET SETTINGS
                   </h3>
                   <p className="text-gray-500 font-rajdhani text-xs uppercase tracking-widest mt-1">
@@ -801,7 +801,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                         <label className="text-gray-400 font-orbitron text-[9px] uppercase tracking-widest block">
                           Current Rank
                         </label>
-                        <div className="text-lg md:text-xl font-orbitron font-black text-accent mt-1">
+                        <div className="mt-1 font-orbitron text-base font-black text-accent sm:text-lg">
                           {playerRank || 'UNRANKED'}
                         </div>
                       </div>
@@ -809,7 +809,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                         <label className="text-gray-400 font-orbitron text-[9px] uppercase tracking-widest block">
                           Combat Points
                         </label>
-                        <div className="text-lg md:text-xl font-orbitron font-black text-primary mt-1">
+                        <div className="mt-1 font-orbitron text-base font-black text-primary sm:text-lg">
                           {playerPoints}
                         </div>
                       </div>
@@ -817,7 +817,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                         <label className="text-gray-400 font-orbitron text-[9px] uppercase tracking-widest block">
                           Total Kills
                         </label>
-                        <div className="text-lg md:text-xl font-orbitron font-black text-pink mt-1">
+                        <div className="mt-1 font-orbitron text-base font-black text-pink sm:text-lg">
                           {playerKills}
                         </div>
                       </div>
@@ -856,7 +856,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
             {activeTab === 'achievements' && (
               <div className="space-y-6">
                 <div className="border-b border-white/5 pb-4">
-                  <h3 className="font-orbitron font-bold text-xl text-white uppercase tracking-tight">
+                  <h3 className="font-orbitron text-base font-bold uppercase tracking-tight text-white sm:text-lg">
                     WARRIOR MEDAL & BADGES
                   </h3>
                   <p className="text-gray-500 font-rajdhani text-xs uppercase tracking-widest mt-1">

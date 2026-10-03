@@ -258,8 +258,8 @@ const PlayerStatsAdmin = ({ registrations }) => {
         <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-3 sm:p-4">
           {[
             { label: 'Players on this page', value: playerStats.length.toLocaleString(), icon: 'fa-users', accent: 'text-cyan-300' },
-            { label: 'Total Balance', value: `◈ ${pageSummary.balance.toLocaleString()}`, icon: 'fa-wallet', accent: 'text-cyan-300' },
-            { label: 'Total Spent', value: `◈ ${pageSummary.spent.toLocaleString()}`, icon: 'fa-coins', accent: 'text-slate-100' }
+            { label: 'Total Balance', value: `${pageSummary.balance.toLocaleString()} TGC`, icon: 'fa-wallet', accent: 'text-cyan-300' },
+            { label: 'Total Spent', value: `${pageSummary.spent.toLocaleString()} TGC`, icon: 'fa-coins', accent: 'text-slate-100' }
           ].map((stat) => (
             <div key={stat.label} className="relative flex min-h-[76px] items-center justify-between overflow-hidden rounded-lg border border-cyann bg-[#091a2c] px-4 py-3 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-cyan-400">
               <div>
@@ -341,8 +341,8 @@ const PlayerStatsAdmin = ({ registrations }) => {
                           </div>
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-right font-orbitron text-xs font-black text-cyan-300">◈ {Number(player.balance || 0).toLocaleString()}</td>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-right font-orbitron text-xs font-bold text-slate-200">◈ {Number(player.total_spent || 0).toLocaleString()}</td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-right font-orbitron text-xs font-black text-cyan-300">{Number(player.balance || 0).toLocaleString()} TGC</td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-right font-orbitron text-xs font-bold text-slate-200">{Number(player.total_spent || 0).toLocaleString()} TGC</td>
                       <td className="px-3 py-2.5 text-center">
                         <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold capitalize ${
                           status.toLowerCase() === 'active'
@@ -495,7 +495,7 @@ const PlayerStatsAdmin = ({ registrations }) => {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Balance (◈)</label>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Balance (TGC)</label>
                       <input type="number" value={tempBalance} onChange={(e) => setTempBalance(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
                     </div>
                     <div>
@@ -619,7 +619,7 @@ const PlayerStatsAdmin = ({ registrations }) => {
                         )}
                       </div>
                       <div className={`font-orbitron font-black ${isOut ? 'text-pink' : 'text-tertiary'}`}>
-                        {isOut ? '-' : '+'}◈ {Number(tx.amount || 0).toLocaleString()}
+                        {isOut ? '-' : '+'}{Number(tx.amount || 0).toLocaleString()} TGC
                       </div>
                     </div>
                   );
