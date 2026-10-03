@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminFetch } from '../services/adminAuth';
 import { REQUEST_TYPES, REQUEST_STATUS, MEMBERSHIP_BENEFITS, ADMIN_WHATSAPP } from '../constants/balanceConstants';
+import ErrorBox from './ErrorBox.jsx';
 
 const BRAND = {
   name: 'Taigour E-Sports',
@@ -15,6 +16,7 @@ const AdminRequestsPanel = () => {
   const [processingId, setProcessingId] = useState(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [billRequest, setBillRequest] = useState(null);
+  const [alertBox, setAlertBox] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -47,15 +49,20 @@ const AdminRequestsPanel = () => {
 
       if (!response.ok) throw new Error('Failed to approve request');
 
-      alert('✓ Request approved and balance/membership updated!');
       const approvedReq = requests.find(r => r.id === requestId);
       if (approvedReq) setBillRequest({ ...approvedReq, status: REQUEST_STATUS.APPROVED, admin_notes: adminNotes || approvedReq.admin_notes || null });
       setAdminNotes('');
       setExpandedRequest(null);
       await fetchRequests();
+      setAlertBox({
+        type: 'success',
+        message: approvedReq?.type === 'verification'
+          ? 'Verification approved. The player account is now verified.'
+          : 'Request approved and balance or membership updated.'
+      });
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to approve request');
+      setAlertBox({ type: 'error', message: error.message || 'Failed to approve request.' });
     } finally {
       setProcessingId(null);
     }
@@ -72,13 +79,13 @@ const AdminRequestsPanel = () => {
 
       if (!response.ok) throw new Error('Failed to decline request');
 
-      alert('✓ Request declined and player notified.');
       setAdminNotes('');
       setExpandedRequest(null);
       await fetchRequests();
+      setAlertBox({ type: 'success', message: 'Request declined.' });
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to decline request');
+      setAlertBox({ type: 'error', message: error.message || 'Failed to decline request.' });
     } finally {
       setProcessingId(null);
     }
@@ -230,7 +237,10 @@ const AdminRequestsPanel = () => {
     `.trim();
 
     const w = window.open('', '_blank');
-    if (!w) return alert('Popup blocked. Please allow popups to print the bill.');
+    if (!w) {
+      setAlertBox({ type: 'error', message: 'Popup blocked. Allow popups in your browser to print the bill.' });
+      return;
+    }
     w.document.open();
     w.document.write(html);
     w.document.close();
@@ -252,6 +262,13 @@ const AdminRequestsPanel = () => {
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 md:space-y-6">
+      {alertBox && (
+        <ErrorBox
+          message={alertBox.message}
+          type={alertBox.type}
+          onClose={() => setAlertBox(null)}
+        />
+      )}
       {/* Header & Stats */}
       <div className="overflow-hidden rounded-xl border border-cyann bg-[#061321] p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-3 border-b border-cyann pb-4">
