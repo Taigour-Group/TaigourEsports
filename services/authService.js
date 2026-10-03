@@ -95,6 +95,42 @@ class AuthService {
     return { data };
   }
 
+  async verificationRequest(method = 'GET') {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session?.access_token) throw new Error('Please sign in to request verification.');
+
+      const response = await fetch('/api/verification-request', {
+        method,
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      const responseText = await response.text();
+      let result;
+      try {
+        result = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        if (response.status === 404) {
+          throw new Error('Verification service is unavailable. Restart the API server or redeploy the backend to load the verification request route.');
+        }
+        throw new Error(`Verification service returned an invalid response (HTTP ${response.status}).`);
+      }
+      if (!response.ok) throw new Error(result.error || 'Failed to process verification request.');
+      return { data: result };
+    } catch (error) {
+      console.error('Verification request error:', error);
+      return { error };
+    }
+  }
+
+  async getVerificationRequest() {
+    return this.verificationRequest();
+  }
+
+  async submitVerificationRequest() {
+    return this.verificationRequest('POST');
+  }
+
   async createProfile(userId, profileData) {
     // Generate player_id if not provided
     if (!profileData.player_id) {

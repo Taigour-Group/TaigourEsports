@@ -115,6 +115,10 @@ const PlayerStatsAdmin = ({ registrations }) => {
     return result;
   }, [playerStats, searchTerm, sortBy]);
 
+  const pageSummary = useMemo(() => playerStats.reduce((totals, player) => ({
+    balance: totals.balance + Number(player.balance || 0),
+    spent: totals.spent + Number(player.total_spent || 0)
+  }), { balance: 0, spent: 0 }), [playerStats]);
 
   // Start editing player
   const startEdit = (player) => {
@@ -211,168 +215,171 @@ const PlayerStatsAdmin = ({ registrations }) => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-bg-card p-6 rounded-2xl border border-white/5">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-          <h2 className="text-2xl font-orbitron font-black text-white uppercase tracking-widest">
-            <i className="fa-solid fa-chart-line text-primary mr-3"></i>Player Statistics
+    <section className="space-y-4 md:space-y-5">
+      <div className="overflow-hidden rounded-xl border border-cyan bg-[#061321] shadow-[0_16px_45px_rgba(0,0,0,0.22)]">
+        <div className="flex flex-col gap-4 border-b border-cyan-950/80 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+          <h2 className="flex items-center gap-3 font-orbitron text-lg font-black uppercase tracking-[0.08em] text-slate-100 sm:text-xl">
+            <i className="fa-solid fa-chart-line text-cyan-400"></i>
+            <span>Player <span className="text-cyan-400">Statistics</span></span>
           </h2>
-          <button
-            onClick={fetchPlayerStats}
-            disabled={loading}
-            className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-bold hover:bg-white/10 transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            <i className={`fa-solid fa-rotate-right ${loading ? 'animate-spin' : ''}`}></i>
-            Refresh Data
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              onClick={fetchPlayerStats}
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-900/80 px-3.5 py-2 text-xs font-bold text-slate-200 transition-colors hover:border-cyan-700 hover:text-white disabled:cursor-wait disabled:opacity-50"
+            >
+              <i className={`fa-solid fa-rotate-right ${loading ? 'animate-spin' : ''}`}></i>
+              Refresh Data
+            </button>
+            <label className="flex min-w-0 items-center gap-2 rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-slate-500 focus-within:border-cyan-500 sm:w-56">
+              <i className="fa-solid fa-magnifying-glass text-xs"></i>
+              <input
+                type="search"
+                placeholder="Search username or ID..."
+                aria-label="Search players by username or ID"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-500"
+              />
+            </label>
+            <select
+              aria-label="Sort players"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="rounded-md border border-slate-700 bg-[#091827] px-3 py-2 text-xs text-slate-200 outline-none focus:border-cyan-500"
+            >
+              <option value="created_at">Sort by: Newest</option>
+              <option value="balance">Sort by: Balance (High)</option>
+              <option value="spent">Sort by: Total Spent</option>
+            </select>
+          </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Search by username, player ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary"
-          />
-          
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary"
-          >
-            <option value="created_at">Sort by: Newest</option>
-            <option value="balance">Sort by: Balance (High)</option>
-            <option value="spent">Sort by: Total Spent</option>
-          </select>
+
+        <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-3 sm:p-4">
+          {[
+            { label: 'Players on this page', value: playerStats.length.toLocaleString(), icon: 'fa-users', accent: 'text-cyan-300' },
+            { label: 'Total Balance', value: `◈ ${pageSummary.balance.toLocaleString()}`, icon: 'fa-wallet', accent: 'text-cyan-300' },
+            { label: 'Total Spent', value: `◈ ${pageSummary.spent.toLocaleString()}`, icon: 'fa-coins', accent: 'text-slate-100' }
+          ].map((stat) => (
+            <div key={stat.label} className="relative flex min-h-[76px] items-center justify-between overflow-hidden rounded-lg border border-cyann bg-[#091a2c] px-4 py-3 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-cyan-400">
+              <div>
+                <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">{stat.label}</div>
+                <div className={`font-orbitron text-xl font-black ${stat.accent}`}>{stat.value}</div>
+              </div>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-cyann bg-cyan-400/10 text-cyan-300">
+                <i className={`fa-solid ${stat.icon}`}></i>
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-bg-card p-4 rounded-lg border border-white/5">
-          <div className="text-gray-500 text-xs uppercase tracking-widest mb-2">Total Players</div>
-          <div className="text-3xl font-orbitron font-black text-white">{playerStats.length}</div>
-        </div>
-        <div className="bg-bg-card p-4 rounded-lg border border-white/5">
-          <div className="text-gray-500 text-xs uppercase tracking-widest mb-2">Total Balance</div>
-          <div className="text-3xl font-orbitron font-black text-primary">
-            ◈ {playerStats.reduce((acc, p) => acc + p.balance, 0).toLocaleString()}
-          </div>
-        </div>
-        <div className="bg-bg-card p-4 rounded-lg border border-white/5">
-          <div className="text-gray-500 text-xs uppercase tracking-widest mb-2">Total Spent</div>
-          <div className="text-3xl font-orbitron font-black text-pink">
-            ◈ {playerStats.reduce((acc, p) => acc + p.total_spent, 0).toLocaleString()}
-          </div>
-        </div>
-      </div>
-
-      {/* Players Table */}
-      <div className="bg-bg-card rounded-2xl border border-white/5 overflow-x">
-        {/* Keep this section height-limited so the Admin page doesn't grow endlessly */}
-        <div className="overflow-x-auto max-h-[520px] w-full pr-2 custom-scrollbar">
-          <table className="min-w-max w-full">
-
-            <thead className="bg-white/5 border-b border-white/10">
+      <div className="overflow-hidden rounded-xl border border-cyan bg-[#061321] shadow-[0_16px_45px_rgba(0,0,0,0.22)]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] border-collapse text-left">
+            <thead className="border-b border-cyann bg-[#0a1a2a]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-orbitron font-black uppercase text-gray-400 tracking-widest">Player</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron font-black uppercase text-gray-400 tracking-widest">Stats</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron font-black uppercase text-gray-400 tracking-widest">Membership</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron font-black uppercase text-gray-400 tracking-widest">Balance</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron font-black uppercase text-gray-400 tracking-widest">Locked</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron font-black uppercase text-gray-400 tracking-widest">Total Spent</th>
-                <th className="px-4 py-3 text-center text-xs font-orbitron font-black uppercase text-gray-400 tracking-widest">Actions</th>
+                <th className="w-12 px-3 py-3 text-center text-[9px] font-orbitron font-black uppercase tracking-widest text-slate-400">#</th>
+                <th className="px-3 py-3 text-[9px] font-orbitron font-black uppercase tracking-widest text-slate-400">Player</th>
+                <th className="px-3 py-3 text-right text-[9px] font-orbitron font-black uppercase tracking-widest text-slate-400">Balance</th>
+                <th className="px-3 py-3 text-right text-[9px] font-orbitron font-black uppercase tracking-widest text-slate-400">Spent</th>
+                <th className="px-3 py-3 text-center text-[9px] font-orbitron font-black uppercase tracking-widest text-slate-400">Status</th>
+                <th className="px-3 py-3 text-center text-[9px] font-orbitron font-black uppercase tracking-widest text-slate-400">Ledger</th>
+                <th className="px-3 py-3 text-center text-[9px] font-orbitron font-black uppercase tracking-widest text-slate-400">Edit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-cyann">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-4 py-6 text-center text-gray-500">
-                    <i className="fa-solid fa-spinner fa-spin mr-2"></i>Loading...
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-400">
+                    <i className="fa-solid fa-spinner fa-spin mr-2 text-cyan-400"></i>Loading players...
                   </td>
                 </tr>
               ) : filteredPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-4 py-6 text-center text-gray-500">
-                    No players found
-                  </td>
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-400">No players found.</td>
                 </tr>
               ) : (
-                filteredPlayers.map((player) => (
-                  <tr key={player.user_id || player.profiles?.player_id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-4">
-                      <div>
-                        <div className="font-bold text-white">{player.profiles?.full_name || 'N/A'}</div>
-                        <div className="text-xs text-gray-500">{player.profiles?.player_id || player.user_id.slice(0, 8)}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex gap-2">
-                        <span className="text-xs bg-white/5 border border-white/10 px-2 py-1 rounded text-gray-300">
-                          <i className="fa-solid fa-medal text-primary mr-1"></i> {player.profiles?.rank || 'Unranked'}
+                filteredPlayers.map((player, index) => {
+                  const name = player.profiles?.full_name || 'Unnamed player';
+                  const playerId = player.profiles?.player_id || player.user_id || '';
+                  const membership = catalogMemberships[player.membership_tier]?.name || 'None';
+                  const status = String(player.status || 'active');
+                  const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'P';
+
+                  return (
+                    <tr key={player.user_id || player.profiles?.player_id} className="transition-colors hover:bg-cyan-400/[0.035]">
+                      <td className="px-3 py-2.5 text-center text-xs font-semibold text-slate-400">{page * pageSize + index + 1}</td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          {player.profiles?.avatar_url ? (
+                            <img src={player.profiles.avatar_url} alt="" className="h-8 w-8 shrink-0 rounded-full border border-cyan-700/70 object-cover" />
+                          ) : (
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-700/70 bg-cyan-400/10 font-orbitron text-[10px] font-bold text-cyan-300">{initials}</span>
+                          )}
+                          <div className="min-w-0">
+                            <div className="truncate text-xs font-bold text-slate-100">{name}</div>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-slate-500">
+                              <span>ID: {playerId}</span>
+                              <span>UID: {(player.user_id || '').slice(0, 8)}</span>
+                              <span className={`${getMembershipColor(player.membership_tier)} font-bold`}>{membership}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-right font-orbitron text-xs font-black text-cyan-300">◈ {Number(player.balance || 0).toLocaleString()}</td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-right font-orbitron text-xs font-bold text-slate-200">◈ {Number(player.total_spent || 0).toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold capitalize ${
+                          status.toLowerCase() === 'active'
+                            ? 'border-emerald-700/60 bg-emerald-950/60 text-emerald-300'
+                            : 'border-slate-700 bg-slate-900 text-slate-300'
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${status.toLowerCase() === 'active' ? 'bg-emerald-400' : 'bg-slate-400'}`}></span>
+                          {status}
                         </span>
-                        <span className="text-xs bg-white/5 border border-white/10 px-2 py-1 rounded text-gray-300">
-                          <i className="fa-solid fa-skull text-red-500 mr-1"></i> {player.profiles?.total_kills || 0}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={`px-2 py-1 rounded text-xs font-bold border ${getMembershipBadgeColor(player.membership_tier)}`}>
-                        <i className={`fa-solid fa-crown ${getMembershipColor(player.membership_tier)} mr-1`}></i>
-                        {catalogMemberships[player.membership_tier]?.name || 'None'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 font-orbitron font-black text-primary">
-                      ◈ {player.balance.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-4 font-orbitron font-bold text-accent">
-                      ◈ {Number(player.locked_balance || 0).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-4 font-orbitron font-bold text-pink">
-                      ◈ {player.total_spent.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
                         <button
                           onClick={() => openLedger(player.profiles?.player_id)}
-                          className="px-3 py-1 bg-white/5 border border-white/10 text-white rounded text-xs font-bold hover:bg-white/10 transition-colors"
+                          disabled={!player.profiles?.player_id}
+                          className="rounded-md border border-slate-700 bg-slate-900/80 px-2.5 py-1.5 text-[10px] font-bold text-slate-200 transition-colors hover:border-cyan-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                           title="View ledger"
                         >
-                          <i className="fa-solid fa-receipt mr-1"></i>Ledger
+                          <i className="fa-solid fa-receipt mr-1.5"></i>Ledger
                         </button>
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
                         <button
                           onClick={() => startEdit(player)}
-                          className="px-3 py-1 bg-primary text-dark rounded text-xs font-bold hover:bg-primary/80 transition-colors"
+                          className="rounded-md bg-red-500 px-2.5 py-1.5 text-[10px] font-black text-[#031018] transition-colors hover:bg-cyan-300"
                         >
-                          <i className="fa-solid fa-edit mr-1"></i>Edit
+                          <i className="fa-solid fa-pen-to-square mr-1.5"></i>Edit
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="flex justify-between items-center p-4 border-t border-white/5">
+        <div className="flex items-center justify-between border-t border-cyan-950 px-3 py-2.5 sm:px-4">
           <button
             onClick={() => setPage(Math.max(0, page - 1))}
             disabled={page === 0}
-            className="px-3 py-1 bg-white/5 text-white rounded text-xs disabled:opacity-50 hover:bg-white/10"
+            className="rounded-md border border-slate-800 bg-slate-900/70 px-3 py-1.5 text-[10px] font-semibold text-slate-300 transition-colors hover:border-cyan-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Previous
+            <i className="fa-solid fa-chevron-left mr-1.5"></i>Previous
           </button>
-          <span className="text-sm text-gray-400">Page {page + 1}</span>
+          <span className="text-[10px] font-semibold text-slate-400">Page {page + 1}</span>
           <button
             onClick={() => setPage(page + 1)}
             disabled={filteredPlayers.length < pageSize}
-            className="px-3 py-1 bg-white/5 text-white rounded text-xs disabled:opacity-50 hover:bg-white/10"
+            className="rounded-md border border-slate-800 bg-slate-900/70 px-3 py-1.5 text-[10px] font-semibold text-slate-300 transition-colors hover:border-cyan-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Next
+            Next<i className="fa-solid fa-chevron-right ml-1.5"></i>
           </button>
         </div>
       </div>
@@ -625,7 +632,7 @@ const PlayerStatsAdmin = ({ registrations }) => {
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 };
 

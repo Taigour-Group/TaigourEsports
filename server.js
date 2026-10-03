@@ -172,6 +172,14 @@ const globalApiLimiter = rateLimit({
 });
 app.use('/api/', globalApiLimiter);
 
+const verificationRequestLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many verification requests. Please try again later.' }
+});
+
 // Simple In-Memory Cache
 const cacheMap = new Map();
 function apiCache(durationSec = 60) {
@@ -634,6 +642,66 @@ app.use((req, res, next) => {
 
 // --- API Endpoints ---
 
+app.get('/api/verification-request', requireUser, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('purchase_requests')
+      .select('id')
+      .eq('user_id', req.userId)
+      .eq('type', 'verification')
+      .eq('status', 'pending')
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    res.json({ pending: Boolean(data) });
+  } catch (error) {
+    console.error('Error checking verification request:', error);
+    res.status(500).json({ error: 'Failed to check verification request status.' });
+  }
+});
+
+app.post('/api/verification-request', requireUser, verificationRequestLimiter, async (req, res) => {
+  try {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name, player_id, verified')
+      .eq('id', req.userId)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    if (!profile) return res.status(404).json({ error: 'Player profile not found.' });
+    if (profile.verified === true) return res.status(409).json({ error: 'This account is already verified.' });
+
+    const { data: existingRequest, error: existingRequestError } = await supabase
+      .from('purchase_requests')
+      .select('id')
+      .eq('user_id', req.userId)
+      .eq('type', 'verification')
+      .eq('status', 'pending')
+      .limit(1)
+      .maybeSingle();
+    if (existingRequestError) throw existingRequestError;
+    if (existingRequest) return res.json({ pending: true });
+
+    const { error } = await supabase.from('purchase_requests').insert([{
+      user_id: req.userId,
+      user_email: req.user?.email || null,
+      user_name: profile.full_name || req.user?.user_metadata?.full_name || 'Player',
+      type: 'verification',
+      amount: 0,
+      players_id: profile.player_id || null,
+      description: 'Player requested account/ID verification.',
+      status: 'pending',
+      created_at: new Date().toISOString()
+    }]);
+    if (error) throw error;
+
+    res.json({ pending: true });
+  } catch (error) {
+    console.error('Error submitting verification request:', error);
+    res.status(500).json({ error: 'Failed to submit verification request.' });
+  }
+});
+
 // Create purchase request (recharge or membership)
 app.post('/api/purchase-request', async (req, res) => {
   const {
@@ -733,7 +801,19 @@ app.put('/api/purchase-requests/:id/approve', requireAdminRole, async (req, res)
     const userId = reqData.user_id;
     const playerId = await getPlayerIdForUserId(userId).catch(() => null);
 
-    if (reqData.type === 'recharge') {
+    if (reqData.type === 'verification') {
+      if (reqData.status !== 'pending') {
+        return res.status(409).json({ error: 'Verification request is no longer pending.' });
+      }
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .update({ verified: true })
+        .eq('id', reqData.user_id)
+        .select('id')
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile) return res.status(404).json({ error: 'Player profile not found.' });
+    } else if (reqData.type === 'recharge') {
       if (!playerId) return res.status(400).json({ error: 'Player profile missing player_id (wallet id).' });
 
       await ensureWallet(playerId, userId);
@@ -2691,6 +2771,7 @@ async function requireUser(req, res, next) {
     if (error || !data?.user?.id) return safeError(res, 401, 'Unauthorized');
 
     req.userId = data.user.id;
+    req.user = data.user;
     return next();
   } catch (e) {
     return safeError(res, 401, 'Unauthorized');
@@ -3356,4 +3437,3 @@ const membershipExpiryInterval = setInterval(() => {
 membershipExpiryInterval.unref();
 
 app.listen(PORT, '0.0.0.0', () => console.log(`Taigour E-Sports server running on http://0.0.0.0:${PORT}`));
-

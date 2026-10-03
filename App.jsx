@@ -305,19 +305,22 @@ const App = () => {
               {/* Admin Route */}
               <Route path="/admin" element={
                 <AdminGate>
-                  <AdminPanel
-                    tournaments={tournaments}
-                    saveTournaments={handleSaveTournaments}
-                    refetchTournaments={refetchTournaments}
-                    leaderboard={leaderboard}
-                    saveLeaderboard={handleSaveLeaderboard}
-                    streams={streams}
-                    saveStreams={handleSaveStreams}
-                    registrations={registrations}
-                    saveRegistrations={handleSaveRegistrations}
-                    systemLogs={logs}
-                    onRestore={handleRestore}
-                  />
+                  {({ onLogout }) => (
+                    <AdminPanel
+                      tournaments={tournaments}
+                      saveTournaments={handleSaveTournaments}
+                      refetchTournaments={refetchTournaments}
+                      leaderboard={leaderboard}
+                      saveLeaderboard={handleSaveLeaderboard}
+                      streams={streams}
+                      saveStreams={handleSaveStreams}
+                      registrations={registrations}
+                      saveRegistrations={handleSaveRegistrations}
+                      systemLogs={logs}
+                      onRestore={handleRestore}
+                      onLogout={onLogout}
+                    />
+                  )}
                 </AdminGate>
               } />
             </Routes>

@@ -21,6 +21,8 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
     contact_info: ''
   });
   const [updating, setUpdating] = useState(false);
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verificationSubmitting, setVerificationSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -40,6 +42,36 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
       });
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (!user || profile?.verified) return;
+    let cancelled = false;
+    authService.getVerificationRequest().then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        setErrorMsg(error.message || 'Unable to check verification request status.');
+        return;
+      }
+      setVerificationPending(Boolean(data?.pending));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, profile?.verified]);
+
+  const handleVerificationRequest = async () => {
+    setVerificationSubmitting(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    const { data, error } = await authService.submitVerificationRequest();
+    if (error) {
+      setErrorMsg(error.message || 'Failed to submit verification request.');
+    } else {
+      setVerificationPending(Boolean(data?.pending));
+      setSuccessMsg('Verification request submitted. An admin will review your account.');
+    }
+    setVerificationSubmitting(false);
+  };
 
   if (loading) {
     return (
@@ -217,9 +249,23 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
             {/* Profile Info details */}
             <div className="mt-1 min-w-0 flex-1 space-y-2 text-center sm:text-left">
               <p className="font-space text-[9px] font-bold uppercase tracking-[0.24em] text-cyan">Player Profile</p>
-              <h1 className="break-words font-space text-3xl font-black uppercase leading-none text-white sm:text-4xl md:text-5xl">
-                {profile?.full_name || user.user_metadata?.full_name || 'Player One'}
-              </h1>
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                <h1 className="break-words font-space text-3xl font-black uppercase leading-none text-white sm:text-4xl md:text-5xl">
+                  {profile?.full_name || user.user_metadata?.full_name || 'Player One'}
+                </h1>
+                {profile?.verified === true && (
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-6 w-6 shrink-0 text-cyan"
+                    fill="currentColor"
+                    role="img"
+                    aria-label="Verified account"
+                    title="Verified account"
+                  >
+                    <path d="M8.004 1.183a1.5 1.5 0 0 1 2.049-.55L12 1.759 13.947.634a1.5 1.5 0 0 1 2.05.549L17.045 3H19.5A1.5 1.5 0 0 1 21 4.5v2.453l1.817 1.05a1.5 1.5 0 0 1 .55 2.049L22.241 12l1.124 1.947a1.5 1.5 0 0 1-.55 2.05L21 17.044V19.5a1.5 1.5 0 0 1-1.5 1.5h-2.454l-1.05 1.817a1.5 1.5 0 0 1-2.048.549L12 22.241l-1.948 1.125a1.5 1.5 0 0 1-2.049-.549L6.955 21H4.5A1.5 1.5 0 0 1 3 19.5v-2.455l-1.817-1.049a1.5 1.5 0 0 1-.549-2.049L1.758 12 .634 10.053a1.5 1.5 0 0 1 .549-2.05L3 6.954V4.5A1.5 1.5 0 0 1 4.5 3h2.454l1.05-1.817zm9.703 9.024a1 1 0 0 0-1.414-1.414l-5.44 5.44a.5.5 0 0 1-.707 0l-2.439-2.44a1 1 0 0 0-1.414 1.414l2.44 2.44a2.5 2.5 0 0 0 3.535 0l5.44-5.44z" />
+                  </svg>
+                )}
+              </div>
               <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-rajdhani text-sm text-slate-300 sm:justify-start md:text-base">
                 <span className="break-all">{user.email}</span>
                 <span className="hidden text-cyan/50 sm:inline">/</span>
@@ -454,6 +500,31 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                   <p className="text-gray-500 font-rajdhani text-xs uppercase tracking-widest mt-1">
                     Manage your competitive metadata and contact channels
                   </p>
+                </div>
+
+                <div className="flex flex-col gap-3 rounded-lg border border-cyan-300/15 bg-cyan-400/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h4 className="font-orbitron text-sm font-bold uppercase tracking-wide text-white">
+                      Account Verification
+                    </h4>
+                    <p className="mt-1 font-rajdhani text-sm text-gray-400">
+                      {profile?.verified
+                        ? 'Your account is verified.'
+                        : verificationPending
+                          ? 'Your verification request is pending admin review.'
+                          : 'Request an admin review to verify your account.'}
+                    </p>
+                  </div>
+                  {!profile?.verified && (
+                    <button
+                      type="button"
+                      onClick={handleVerificationRequest}
+                      disabled={verificationPending || verificationSubmitting}
+                      className="shrink-0 rounded-md border border-cyan-300/40 bg-cyan-400/10 px-4 py-2 font-orbitron text-[10px] font-black uppercase tracking-wider text-cyan transition-colors hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {verificationSubmitting ? 'Submitting...' : verificationPending ? 'Request Pending' : 'Verify Your ID / Account'}
+                    </button>
+                  )}
                 </div>
 
                 <form onSubmit={handleUpdateProfile} className="space-y-5 font-rajdhani">

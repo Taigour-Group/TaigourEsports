@@ -121,34 +121,9 @@ export default function AdminGate({ children }) {
     );
   }
 
-  return (
-    <div style={{ position: 'relative' }}>
-      <button
-        onClick={handleLogout}
-        className="font-orbitron font-black text-[9px] uppercase tracking-widest"
-        style={{
-          position: 'fixed',
-          top: '100px',
-          right: '24px',
-          zIndex: 9999,
-          padding: '10px 20px',
-          backgroundColor: '#ff0080',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          boxShadow: '0 0 15px rgba(255, 0, 128, 0.4)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}
-      >
-        <i className="fa-solid fa-power-off"></i>
-        Logout Admin
-      </button>
-      {children}
-    </div>
-  );
+  return typeof children === 'function'
+    ? children({ onLogout: handleLogout })
+    : children;
 }
 
 const inputStyle = {

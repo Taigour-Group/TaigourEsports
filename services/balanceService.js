@@ -38,6 +38,7 @@ class BalanceService {
         user_id: r.user_id,
         balance: Number(r.available_balance || 0),
         locked_balance: Number(r.locked_balance || 0),
+        status: r.status || 'active',
         membership_tier: r.membership_tier || 'none',
         membership_expires_at: r.membership_expires_at || null,
         total_spent: Number(r.total_spent || 0),
@@ -119,4 +120,3 @@ class BalanceService {
 }
 
 export const balanceService = new BalanceService();
-

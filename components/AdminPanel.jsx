@@ -15,9 +15,11 @@ const AdminPanel = ({
   streams, saveStreams,
   registrations, saveRegistrations,
   systemLogs,
-  onRestore
+  onRestore,
+  onLogout
 }) => {
   const [activeView, setActiveView] = useState('dashboard');
+  const [showMoreViews, setShowMoreViews] = useState(false);
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [filterGame, setFilterGame] = useState('all');
@@ -715,48 +717,113 @@ const AdminPanel = ({
     return normalized === 'true' || normalized === 'sent' || normalized === 'success' || normalized === '1' || normalized === 'yes';
   };
 
+  const primaryTabs = [
+    { id: 'dashboard', label: 'Dash', icon: 'fa-chart-pie' },
+    { id: 'players', label: 'Players', icon: 'fa-user-gear' },
+    { id: 'catalog', label: 'Catalog', icon: 'fa-gem' },
+    { id: 'tournaments', label: 'Arenas', icon: 'fa-crosshairs' },
+    { id: 'leaderboard', label: 'Ranks', icon: 'fa-crown' }
+  ];
+  const moreTabs = [
+    { id: 'streams', label: 'Feeds', icon: 'fa-bolt' },
+    { id: 'registrations', label: 'Teams', icon: 'fa-users' },
+    { id: 'notifications', label: 'Notify', icon: 'fa-bell' },
+    { id: 'requests', label: 'Requests', icon: 'fa-inbox' },
+    { id: 'logs', label: 'Logs', icon: 'fa-list-ul' }
+  ];
+  const activateTab = (tabId) => {
+    setActiveView(tabId);
+    setShowMoreViews(false);
+    resetForms();
+  };
+
   return (
-    <div className="pt-20 md:pt-24 pb-20 md:pb-24 min-h-screen bg-bg-dark font-rajdhani">
-      <div className="container mx-auto px-3 md:px-4">
-        {/* Admin Header */}
-        <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 md:mb-12 gap-4 md:gap-6 bg-bg-card p-4 md:p-6 border border-white/5 rounded-2xl shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-primary animate-pulse"></div>
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30 flex-shrink-0">
-              <i className="fa-solid fa-shield-halved text-primary text-lg md:text-xl"></i>
+    <div className="min-h-screen bg-[#030b12] font-rajdhani text-white">
+      <header className="sticky top-0 z-[100] border-b border-cyann bg-[#030b12]/95 shadow-[0_8px_30px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+        <div className="mx-auto flex min-h-[60px] max-w-[1440px] items-center justify-between gap-3 px-3 sm:px-5 lg:px-8">
+          <div className="flex min-w-0 shrink-0 items-center gap-3 sm:gap-4">
+            <img
+              src="https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png"
+              alt="Taigour E-Sports"
+              className="h-9 w-9 object-contain"
+            />
+            <div className="hidden border-r border-cyann pr-4 sm:block">
+              <div className="font-orbitron text-xs font-black leading-tight tracking-wide text-white">TAIGOUR</div>
+              <div className="font-orbitron text-[8px] font-bold uppercase tracking-[0.28em] text-cyan-400">E-Sports</div>
             </div>
-            <div className="min-w-0">
-              <h1 className="text-lg md:text-2xl font-orbitron font-black text-white tracking-tighter uppercase">Command <span className="text-primary">Center</span></h1>
-              <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] truncate">Auth Level: Supreme Administrator</p>
+            <div className="flex items-center gap-2 border-l border-cyann pl-3 sm:pl-4">
+              <span className="flex h-8 w-8 items-center justify-center rounded-md border border-cyann bg-cyan-400/10 text-cyan-300">
+                <i className="fa-solid fa-shield-halved"></i>
+              </span>
+              <div className="min-w-0">
+                <h1 className="whitespace-nowrap font-orbitron text-[11px] font-black uppercase tracking-wide sm:text-sm">
+                  Command <span className="text-cyan-400">Center</span>
+                </h1>
+                <p className="hidden text-[8px] font-bold uppercase tracking-[0.16em] text-slate-500 md:block">Supreme Administrator</p>
+              </div>
             </div>
           </div>
 
-          <div className="w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 flex gap-1 md:gap-2 custom-scrollbar">
-            {[
-              { id: 'dashboard', label: 'Dash', icon: 'fa-chart-pie' }, 
-              { id: 'players', label: 'Players', icon: 'fa-user-gear' },
-              { id: 'catalog', label: 'Catalog', icon: 'fa-gem' },
-              { id: 'tournaments', label: 'Arenas', icon: 'fa-crosshairs' },
-              { id: 'leaderboard', label: 'Ranks', icon: 'fa-crown' },
-              { id: 'streams', label: 'Feeds', icon: 'fa-bolt' }, 
-              { id: 'registrations', label: 'Teams', icon: 'fa-users' },
-              { id: 'notifications', label: 'Notify', icon: 'fa-bell' },
-              { id: 'requests', label: 'Requests', icon: 'fa-inbox' },
-              { id: 'logs', label: 'Logs', icon: 'fa-list-ul' }
-            ].map(tab => (
+          <nav aria-label="Admin sections" className="flex min-w-0 items-center justify-end gap-1 overflow-x-auto no-scrollbar">
+            {primaryTabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveView(tab.id); resetForms(); }}
-                className={`px-3 md:px-4 py-2 md:py-2.2 rounded-lg font-orbitron font-black text-[8px] md:text-[10px] uppercase tracking-widest transition-all flex items-center gap-1 md:gap-2 border flex-shrink-0 ${activeView === tab.id ? 'bg-primary text-dark border-primary shadow-[0_0_15px_rgba(0,212,255,0.4)]' : 'bg-white/5 text-gray-500 border-white/5 hover:border-white/20'}`}
+                onClick={() => activateTab(tab.id)}
+                aria-current={activeView === tab.id ? 'page' : undefined}
+                className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-2 font-orbitron text-[8px] font-black uppercase tracking-wider transition-colors sm:px-3 sm:text-[9px] ${
+                  activeView === tab.id
+                    ? 'border-cyann bg-cyan-400 text-cyan shadow-[0_0_16px_rgba(34,211,238,0.24)]'
+                    : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:border-cyann hover:text-white'
+                }`}
               >
-                <i className={`fa-solid ${tab.icon}`}></i> <span className="hidden sm:inline">{tab.label}</span>
+                <i className={`fa-solid ${tab.icon}`}></i>
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
-          </div>
-        </header>
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setShowMoreViews((visible) => !visible)}
+                aria-expanded={showMoreViews}
+                aria-label="More admin sections"
+                className={`flex items-center gap-1 rounded-md border px-2 py-2 font-orbitron text-[8px] font-black uppercase tracking-wider transition-colors sm:px-3 sm:text-[9px] ${
+                  moreTabs.some((tab) => tab.id === activeView)
+                    ? 'border-cyann bg-cyan-400 text-[#031018]'
+                    : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:border-cyann hover:text-white'
+                }`}
+              >
+                <i className="fa-solid fa-ellipsis"></i>
+                <span className="hidden sm:inline">More</span>
+              </button>
+              {showMoreViews && (
+                <div className="absolute right-0 top-full z-50 mt-2 min-w-44 overflow-hidden rounded-lg border border-cyann bg-[#071321] p-1 shadow-2xl">
+                  {moreTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => activateTab(tab.id)}
+                      className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-xs font-bold transition-colors ${
+                        activeView === tab.id ? 'bg-cyan-400/10 text-cyan-300' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      <i className={`fa-solid ${tab.icon} w-4 text-center`}></i>{tab.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={onLogout}
+              className="ml-1 flex shrink-0 items-center gap-1.5 rounded-md border border-pink-500/50 bg-pink-600 px-2.5 py-2 font-orbitron text-[8px] font-black uppercase tracking-wider text-white transition-colors hover:bg-pink-500 sm:px-3 sm:text-[9px]"
+            >
+              <i className="fa-solid fa-power-off"></i>
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </nav>
+        </div>
+      </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-          <div className="lg:col-span-7 xl:col-span-8 space-y-6 md:space-y-8 min-w-0">
+      <main className="mx-auto max-w-[1440px] px-3 pb-12 pt-5 sm:px-5 md:pt-7 lg:px-8">
+        <div className="grid grid-cols-1 gap-5 md:gap-7 lg:grid-cols-12">
+          <div className={`${activeView === 'players' ? 'lg:col-span-12 xl:col-span-12' : 'lg:col-span-7 xl:col-span-8'} min-w-0 space-y-5 md:space-y-7`}>
             {activeView === 'dashboard' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 animate-fade-in">
                 <div className="bg-bg-card p-6 md:p-8 rounded-2xl border border-white/5 relative overflow-hidden group">
@@ -1120,7 +1187,7 @@ const AdminPanel = ({
             )}
           </div>
 
-          <div className="lg:col-span-5 xl:col-span-4">
+          <div className={activeView === 'players' ? 'hidden' : 'lg:col-span-5 xl:col-span-4'}>
             {['tournaments', 'leaderboard', 'streams'].includes(activeView) && (
               <div className="bg-bg-card p-6 md:p-8 rounded-2xl border border-primary/20 lg:sticky lg:top-24 shadow-2xl animate-fade-in max-h-[calc(100vh-120px)] overflow-y-auto custom-scrollbar">
                 <div className="flex items-center justify-between mb-6 md:mb-8 gap-4">
@@ -1578,7 +1645,7 @@ const AdminPanel = ({
             )}
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Registration Edit Panel */}
       {viewingReg && (

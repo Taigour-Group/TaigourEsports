@@ -100,6 +100,7 @@ const AdminRequestsPanel = () => {
   };
 
   const getTypeLabel = (type) => {
+    if (type === 'verification') return '✓ Account Verification';
     return type === REQUEST_TYPES.RECHARGE ? '💰 Recharge' : '👑 Membership';
   };
 
@@ -251,7 +252,7 @@ const AdminRequestsPanel = () => {
       {/* Header & Stats */}
       <div className="border-b border-white/10 pb-4">
         <h3 className="font-orbitron font-bold text-xl text-white uppercase tracking-tight mb-3">
-          💳 Purchase Requests
+          💳 Player & Purchase Requests
         </h3>
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white/5 border border-white/10 rounded-lg p-3">
@@ -306,7 +307,7 @@ const AdminRequestsPanel = () => {
                 {/* Left: Type & User */}
                 <div className="flex items-center gap-4 flex-1">
                   <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg">
-                    {request.type === REQUEST_TYPES.RECHARGE ? '💰' : '👑'}
+                    {request.type === 'verification' ? '✓' : request.type === REQUEST_TYPES.RECHARGE ? '💰' : '👑'}
                   </div>
                   <div>
                     <div className="font-bold text-white">{request.user_name}</div>
@@ -316,7 +317,9 @@ const AdminRequestsPanel = () => {
 
                 {/* Center: amount & Type */}
                 <div className="text-right mr-4">
-                  <div className="font-orbitron font-black text-lg text-primary">◈ {request.amount}</div>
+                  {request.type !== 'verification' && (
+                    <div className="font-orbitron font-black text-lg text-primary">◈ {request.amount}</div>
+                  )}
                   <div className="text-xs text-gray-400">{getTypeLabel(request.type)}</div>
                 </div>
 
@@ -353,7 +356,11 @@ const AdminRequestsPanel = () => {
 
                   {/* Request Details */}
                   <div className="bg-white/5 border border-white/10 rounded p-3 space-y-2">
-                    {request.type === REQUEST_TYPES.RECHARGE ? (
+                    {request.type === 'verification' ? (
+                      <p className="text-sm text-gray-300">
+                        Review the player’s profile and verify their identity through your established process before approving.
+                      </p>
+                    ) : request.type === REQUEST_TYPES.RECHARGE ? (
                       <>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-400">Package amount:</span>
@@ -387,27 +394,29 @@ const AdminRequestsPanel = () => {
                   </div>
 
                   {/* Payment Details */}
-                  <div className="bg-white/5 border border-white/10 rounded p-3 space-y-2">
-                    <div className="text-gray-500 uppercase tracking-widest text-xs mb-1">Payment Details</div>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">WhatsApp</div>
-                        <div className="font-mono text-white break-all">{request.whatsapp_number || '-'}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">Method</div>
-                        <div className="font-bold text-white">{(request.payment_method || '-').toString().toUpperCase()}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">Account No.</div>
-                        <div className="font-mono text-white break-all">{request.payment_account_number || '-'}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">Owner</div>
-                        <div className="font-bold text-white break-words">{request.payment_account_owner || '-'}</div>
+                  {request.type !== 'verification' && (
+                    <div className="bg-white/5 border border-white/10 rounded p-3 space-y-2">
+                      <div className="text-gray-500 uppercase tracking-widest text-xs mb-1">Payment Details</div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">WhatsApp</div>
+                          <div className="font-mono text-white break-all">{request.whatsapp_number || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">Method</div>
+                          <div className="font-bold text-white">{(request.payment_method || '-').toString().toUpperCase()}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">Account No.</div>
+                          <div className="font-mono text-white break-all">{request.payment_account_number || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">Owner</div>
+                          <div className="font-bold text-white break-words">{request.payment_account_owner || '-'}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Description */}
                   <div>
@@ -443,7 +452,7 @@ const AdminRequestsPanel = () => {
                           ) : (
                             <>
                               <i className="fa-solid fa-check mr-2"></i>
-                              Approve & Update
+                              {request.type === 'verification' ? 'Approve & Verify' : 'Approve & Update'}
                             </>
                           )}
                         </button>
