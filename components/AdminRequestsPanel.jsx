@@ -248,30 +248,38 @@ const AdminRequestsPanel = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-4xl space-y-5 md:space-y-6">
       {/* Header & Stats */}
-      <div className="border-b border-white/10 pb-4">
-        <h3 className="font-orbitron font-bold text-xl text-white uppercase tracking-tight mb-3">
-          💳 Player & Purchase Requests
-        </h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-            <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">Pending</div>
-            <div className="text-2xl font-orbitron font-black text-yellow-400">{pendingCount}</div>
+      <div className="overflow-hidden rounded-xl border border-cyann bg-[#061321] p-4 sm:p-5">
+        <div className="mb-4 flex items-center gap-3 border-b border-cyann pb-4">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-cyann bg-cyan-400/10 text-cyan-300">
+            <i className="fa-solid fa-inbox"></i>
+          </span>
+          <div>
+            <h3 className="font-orbitron text-sm font-black uppercase tracking-widest text-white">
+              Player & Purchase Requests
+            </h3>
+            <p className="mt-1 text-xs text-slate-400">Review requests and update player accounts.</p>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-            <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">Total Requests</div>
-            <div className="text-2xl font-orbitron font-black text-primary">{requests.length}</div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-cyann bg-[#091a2b] p-3">
+            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Pending</div>
+            <div className="mt-1 font-orbitron text-xl font-black text-amber-300">{pendingCount}</div>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-            <div className="text-gray-500 text-xs uppercase tracking-widest mb-1">Total amount</div>
-            <div className="text-2xl font-orbitron font-black text-pink">◈ {totalamount.toLocaleString()}</div>
+          <div className="rounded-lg border border-cyann bg-[#091a2b] p-3">
+            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Total requests</div>
+            <div className="mt-1 font-orbitron text-xl font-black text-cyan-300">{requests.length}</div>
+          </div>
+          <div className="rounded-lg border border-cyann bg-[#091a2b] p-3">
+            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Total amount</div>
+            <div className="mt-1 font-orbitron text-xl font-black text-slate-100">◈ {totalamount.toLocaleString()}</div>
           </div>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-white/10">
+      <div className="flex flex-wrap gap-2">
         {['pending', 'approved', 'declined', 'completed'].map((status) => (
           <button
             key={status}
@@ -279,10 +287,10 @@ const AdminRequestsPanel = () => {
               setFilter(status);
               setExpandedRequest(null);
             }}
-            className={`px-4 py-2 font-bold text-sm uppercase tracking-widest border-b-2 transition-colors ${
+            className={`rounded-md border px-3 py-2 text-[9px] font-orbitron font-bold uppercase tracking-widest transition-colors ${
               filter === status
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-400 hover:text-white'
+                ? 'border-cyann bg-cyan-400/10 text-cyan-300'
+                : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-600 hover:text-white'
             }`}
           >
             {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -293,38 +301,40 @@ const AdminRequestsPanel = () => {
       {/* Requests List */}
       <div className="space-y-3">
         {requests.length === 0 ? (
-          <div className="text-center py-12 bg-white/5 border border-white/10 rounded-lg">
+          <div className="flex flex-col items-center rounded-xl border border-cyann bg-[#061321] py-12 text-center">
             <i className="fa-solid fa-inbox text-4xl text-gray-500 mb-3 block"></i>
             <p className="text-gray-400">No {filter} requests</p>
           </div>
         ) : (
           requests.map((request) => (
-            <div key={request.id} className="border border-white/10 rounded-lg p-4 hover:border-white/20 transition-colors">
-              <div
-                className="flex items-center justify-between cursor-pointer"
+            <div key={request.id} className="rounded-xl border border-cyann bg-[#061321] p-4 transition-colors hover:border-cyan-700 sm:p-5">
+              <button
+                type="button"
+                className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-left sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
+                aria-expanded={expandedRequest === request.id}
                 onClick={() => setExpandedRequest(expandedRequest === request.id ? null : request.id)}
               >
                 {/* Left: Type & User */}
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyann bg-cyan-400/10 text-cyan-300">
                     {request.type === 'verification' ? '✓' : request.type === REQUEST_TYPES.RECHARGE ? '💰' : '👑'}
                   </div>
-                  <div>
-                    <div className="font-bold text-white">{request.user_name}</div>
-                    <div className="text-xs text-gray-500">{request.user_email}</div>
+                  <div className="min-w-0">
+                    <div className="truncate font-bold text-white">{request.user_name}</div>
+                    <div className="truncate text-xs text-gray-500">{request.user_email}</div>
                   </div>
                 </div>
 
                 {/* Center: amount & Type */}
-                <div className="text-right mr-4">
+                <div className="min-w-0 text-right">
                   {request.type !== 'verification' && (
-                    <div className="font-orbitron font-black text-lg text-primary">◈ {request.amount}</div>
+                    <div className="whitespace-nowrap font-orbitron text-lg font-black text-primary">◈ {request.amount}</div>
                   )}
                   <div className="text-xs text-gray-400">{getTypeLabel(request.type)}</div>
                 </div>
 
                 {/* Right: Status & Date */}
-                <div className="text-right w-40">
+                <div className="col-start-2 row-start-2 text-right sm:col-auto sm:row-auto sm:w-32">
                   <div className={`inline-block px-3 py-1 rounded border text-xs font-bold mb-1 ${getStatusColor(request.status)}`}>
                     {request.status.toUpperCase()}
                   </div>
@@ -334,10 +344,10 @@ const AdminRequestsPanel = () => {
                 </div>
 
                 {/* Expand Icon */}
-                <div className="text-gray-400 ml-4">
+                <div className="col-start-2 row-start-1 text-gray-400 sm:col-auto sm:row-auto">
                   <i className={`fa-solid fa-chevron-down transition-transform ${expandedRequest === request.id ? 'rotate-180' : ''}`}></i>
                 </div>
-              </div>
+              </button>
 
               {/* Expanded Details */}
               {expandedRequest === request.id && (

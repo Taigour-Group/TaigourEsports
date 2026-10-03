@@ -23,6 +23,8 @@ const AdminPanel = ({
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [filterGame, setFilterGame] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [listPage, setListPage] = useState(0);
   const [viewingReg, setViewingReg] = useState(null);
   const [whatsAppSentMap, setWhatsAppSentMap] = useState({});
   const [isRefreshingRegistrations, setIsRefreshingRegistrations] = useState(false);
@@ -263,9 +265,28 @@ const AdminPanel = ({
 
       // Streams are not game-specific in current data model.
       const matchGame = activeView === 'streams' || filterGame === 'all' || itemGameType === filterGame;
-      return matchSearch && matchGame;
+      const itemStatus = String(item.status || 'draft').toLowerCase();
+      const matchStatus = activeView !== 'tournaments' || filterStatus === 'all' || itemStatus === filterStatus;
+      return matchSearch && matchGame && matchStatus;
     });
-  }, [activeView, tournaments, leaderboard, streams, registrations, search, filterGame]);
+  }, [activeView, tournaments, leaderboard, streams, registrations, search, filterGame, filterStatus]);
+  const rankedList = useMemo(
+    () => activeView === 'leaderboard'
+      ? [...filteredList].sort((a, b) => Number(a.rank || 0) - Number(b.rank || 0))
+      : filteredList,
+    [activeView, filteredList]
+  );
+  const listPageSize = 6;
+  const pageItems = useMemo(
+    () => ['tournaments', 'leaderboard'].includes(activeView)
+      ? rankedList.slice(listPage * listPageSize, (listPage + 1) * listPageSize)
+      : rankedList,
+    [activeView, rankedList, listPage]
+  );
+
+  useEffect(() => {
+    setListPage(0);
+  }, [activeView, search, filterGame, filterStatus]);
 
   // Handlers
   const resetForms = () => {
@@ -731,8 +752,13 @@ const AdminPanel = ({
     { id: 'requests', label: 'Requests', icon: 'fa-inbox' },
     { id: 'logs', label: 'Logs', icon: 'fa-list-ul' }
   ];
+  const hasEditorPanel = ['tournaments', 'leaderboard', 'streams'].includes(activeView);
   const activateTab = (tabId) => {
     setActiveView(tabId);
+    setFilterGame('all');
+    setFilterStatus('all');
+    setListPage(0);
+    setSearch('');
     setShowMoreViews(false);
     resetForms();
   };
@@ -740,7 +766,7 @@ const AdminPanel = ({
   return (
     <div className="min-h-screen bg-[#030b12] font-rajdhani text-white">
       <header className="sticky top-0 z-[100] border-b border-cyann bg-[#030b12]/95 shadow-[0_8px_30px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-        <div className="mx-auto flex min-h-[60px] max-w-[1440px] items-center justify-between gap-3 px-3 sm:px-5 lg:px-8">
+        <div className="relative mx-auto flex min-h-[60px] max-w-[1440px] items-center justify-between gap-3 px-3 sm:px-5 lg:px-8">
           <div className="flex min-w-0 shrink-0 items-center gap-3 sm:gap-4">
             <img
               src="https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png"
@@ -787,28 +813,13 @@ const AdminPanel = ({
                 aria-label="More admin sections"
                 className={`flex items-center gap-1 rounded-md border px-2 py-2 font-orbitron text-[8px] font-black uppercase tracking-wider transition-colors sm:px-3 sm:text-[9px] ${
                   moreTabs.some((tab) => tab.id === activeView)
-                    ? 'border-cyann bg-cyan-400 text-[#031018]'
+                    ? 'border-cyann bg-cyan text-[#031018]'
                     : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:border-cyann hover:text-white'
                 }`}
               >
                 <i className="fa-solid fa-ellipsis"></i>
                 <span className="hidden sm:inline">More</span>
               </button>
-              {showMoreViews && (
-                <div className="absolute right-0 top-full z-50 mt-2 min-w-44 overflow-hidden rounded-lg border border-cyann bg-[#071321] p-1 shadow-2xl">
-                  {moreTabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => activateTab(tab.id)}
-                      className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-xs font-bold transition-colors ${
-                        activeView === tab.id ? 'bg-cyan-400/10 text-cyan-300' : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      <i className={`fa-solid ${tab.icon} w-4 text-center`}></i>{tab.label}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
             <button
               onClick={onLogout}
@@ -818,42 +829,54 @@ const AdminPanel = ({
               <span className="hidden sm:inline">Logout</span>
             </button>
           </nav>
+          {showMoreViews && (
+            <div className="absolute right-3 top-full z-[110] mt-2 min-w-44 overflow-hidden rounded-lg border border-cyann bg-[#071321] p-1 shadow-2xl sm:right-5 lg:right-8">
+              {moreTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => activateTab(tab.id)}
+                  className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-xs font-bold transition-colors ${
+                    activeView === tab.id ? 'bg-cyan-400/10 text-cyan-300' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <i className={`fa-solid ${tab.icon} w-4 text-center`}></i>{tab.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
       <main className="mx-auto max-w-[1440px] px-3 pb-12 pt-5 sm:px-5 md:pt-7 lg:px-8">
-        <div className="grid grid-cols-1 gap-5 md:gap-7 lg:grid-cols-12">
-          <div className={`${activeView === 'players' ? 'lg:col-span-12 xl:col-span-12' : 'lg:col-span-7 xl:col-span-8'} min-w-0 space-y-5 md:space-y-7`}>
+        <div className={`grid grid-cols-1 gap-5 md:gap-7 ${hasEditorPanel ? 'md:grid-cols-12' : ''}`}>
+          <div className={`${hasEditorPanel ? 'md:col-span-7 xl:col-span-8' : 'md:col-span-12'} min-w-0 space-y-5 md:space-y-7`}>
             {activeView === 'dashboard' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 animate-fade-in">
-                <div className="bg-bg-card p-6 md:p-8 rounded-2xl border border-white/5 relative overflow-hidden group">
-                  <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <i className="fa-solid fa-users text-6xl md:text-8xl"></i>
-                  </div>
-                  <div className="text-gray-500 font-bold text-[9px] md:text-xs uppercase tracking-widest mb-2">Personnel Enlisted</div>
-                  <div className="text-4xl md:text-5xl font-orbitron font-black text-white">{stats.totalPlayers}</div>
-                  <div className="mt-4 text-[9px] md:text-[10px] text-tertiary font-bold uppercase tracking-widest">Active Database Records</div>
-                </div>
-                <div className="bg-bg-card p-6 md:p-8 rounded-2xl border border-white/5 relative overflow-hidden group">
-                  <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <i className="fa-solid fa-trophy text-6xl md:text-8xl"></i>
-                  </div>
-                  <div className="text-gray-500 font-bold text-[9px] md:text-xs uppercase tracking-widest mb-2">Total Prize Vault</div>
-                  <div className="text-4xl md:text-5xl font-orbitron font-black text-primary">◈ {stats.totalPrize.toLocaleString()}</div>
-                  <div className="mt-4 text-[9px] md:text-[10px] text-primary font-bold uppercase tracking-widest">Combat Rewards Assigned</div>
-                </div>
-                <div className="bg-bg-card p-6 md:p-8 rounded-2xl border border-white/5 relative overflow-hidden group sm:col-span-2 lg:col-span-1">
-                  <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <i className="fa-solid fa-satellite-dish text-6xl md:text-8xl"></i>
-                  </div>
-                  <div className="text-gray-500 font-bold text-[9px] md:text-xs uppercase tracking-widest mb-2">Active Arenas</div>
-                  <div className="text-4xl md:text-5xl font-orbitron font-black text-pink">{stats.activeTourneys}</div>
-                  <div className="mt-4 text-[9px] md:text-[10px] text-pink font-bold uppercase tracking-widest">Sectors Operational</div>
+              <div className="animate-fade-in space-y-5 md:space-y-6">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {[
+                    { label: 'Registered Players', value: stats.totalPlayers.toLocaleString(), note: 'Player database', icon: 'fa-users', color: 'text-cyan-300' },
+                    { label: 'Prize Pool', value: `◈ ${stats.totalPrize.toLocaleString()}`, note: 'Across all tournaments', icon: 'fa-trophy', color: 'text-amber-300' },
+                    { label: 'Tournaments', value: stats.activeTourneys.toLocaleString(), note: 'Currently listed', icon: 'fa-crosshairs', color: 'text-emerald-300' }
+                  ].map((stat) => (
+                    <div key={stat.label} className="relative flex min-h-28 items-center justify-between overflow-hidden rounded-xl border border-cyann bg-[#071625] p-4 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-cyan-400 sm:p-5">
+                      <div>
+                        <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">{stat.label}</div>
+                        <div className={`mt-2 font-orbitron text-2xl font-black ${stat.color}`}>{stat.value}</div>
+                        <div className="mt-1 text-[10px] text-slate-500">{stat.note}</div>
+                      </div>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cyann bg-cyan-400/10 text-cyan-300">
+                        <i className={`fa-solid ${stat.icon}`}></i>
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="sm:col-span-2 lg:col-span-3 bg-bg-card p-6 md:p-8 rounded-2xl border border-white/5">
-                  <h3 className="text-lg md:text-xl font-orbitron font-black text-white mb-4 md:mb-6 uppercase tracking-widest">Global Matrix Backup</h3>
-                  <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                <section className="overflow-hidden rounded-xl border border-cyann bg-[#061321]">
+                  <div className="border-b border-cyann px-4 py-4 sm:px-5">
+                    <h3 className="font-orbitron text-sm font-black uppercase tracking-widest text-white">Database backup</h3>
+                    <p className="mt-1 text-xs text-slate-400">Export the current tournament data or restore it from a saved JSON file.</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5">
                     <button
                       onClick={() => {
                         const blob = new Blob([JSON.stringify({ tournaments, leaderboard, streams, registrations })], { type: 'application/json' });
@@ -863,13 +886,14 @@ const AdminPanel = ({
                         a.download = `nexus_sector_state_${new Date().toISOString().split('T')[0]}.json`;
                         a.click();
                       }}
-                      className="flex-1 py-3 md:py-4 glass border border-primary/20 text-primary font-orbitron font-black text-[9px] md:text-xs uppercase tracking-widest hover:bg-primary hover:text-dark transition-all"
+                      className="flex min-h-12 items-center justify-center gap-2 rounded-lg border border-cyann bg-cyan-400/10 px-4 py-3 font-orbitron text-[10px] font-black uppercase tracking-widest text-cyan-300 transition-colors hover:bg-cyan-400 hover:text-[#031018]"
                     >
-                      DOWNLOAD STATE <i className="fa-solid fa-download ml-2 hidden sm:inline"></i>
+                      <i className="fa-solid fa-download"></i> Export backup
                     </button>
-                    <label className="flex-1">
+                    <label className="cursor-pointer">
                       <input
                         type="file"
+                        accept="application/json,.json"
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -885,66 +909,78 @@ const AdminPanel = ({
                           reader.readAsText(file);
                         }}
                       />
-                      <div className="h-full py-3 md:py-4 glass border border-pink/20 text-pink font-orbitron font-black text-[9px] md:text-xs uppercase tracking-widest hover:bg-pink hover:text-white transition-all text-center cursor-pointer flex items-center justify-center gap-2">
-                        RESTORE STATE <i className="fa-solid fa-upload hidden sm:inline"></i>
+                      <div className="flex min-h-12 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-3 font-orbitron text-[10px] font-black uppercase tracking-widest text-slate-200 transition-colors hover:border-cyan-700 hover:text-white">
+                        <i className="fa-solid fa-upload"></i> Restore backup
                       </div>
                     </label>
                   </div>
-                </div>
+                </section>
               </div>
             )}
 
             {activeView === 'catalog' && (
-              <div className="bg-bg-card rounded-2xl border border-white/5 overflow-hidden animate-fade-in shadow-2xl p-4 md:p-6 space-y-6">
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setCatalogMode('membership')}
-                    className={`px-3 py-2 rounded-lg font-orbitron font-black text-[10px] uppercase tracking-widest ${catalogMode === 'membership' ? 'bg-primary text-dark' : 'bg-white/5 text-gray-400'}`}
-                  >
-                    Membership Tiers
-                  </button>
-                  <button
-                    onClick={() => setCatalogMode('recharge')}
-                    className={`px-3 py-2 rounded-lg font-orbitron font-black text-[10px] uppercase tracking-widest ${catalogMode === 'recharge' ? 'bg-primary text-dark' : 'bg-white/5 text-gray-400'}`}
-                  >
-                    Recharge Packs
-                  </button>
+              <section className="animate-fade-in mx-auto max-w-5xl space-y-4 overflow-hidden rounded-xl border border-cyann bg-[#061321] p-4 shadow-[0_16px_45px_rgba(0,0,0,0.22)] sm:p-5">
+                <div className="flex flex-col gap-3 border-b border-cyann pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyann bg-cyan-400/10 text-cyan-300">
+                      <i className="fa-solid fa-layer-group"></i>
+                    </span>
+                    <div>
+                      <h2 className="font-orbitron text-xs font-black uppercase tracking-widest text-white">Catalog</h2>
+                      <p className="mt-1 text-[10px] text-slate-400">Manage membership tiers and wallet recharge packages.</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setCatalogMode('membership')}
+                      className={`rounded-md border px-3 py-2 font-orbitron text-[9px] font-black uppercase tracking-widest transition-colors ${catalogMode === 'membership' ? 'border-cyann bg-cyan text-[#031018]' : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:border-cyann hover:text-white'}`}
+                    >
+                      Membership Tiers
+                    </button>
+                    <button
+                      onClick={() => setCatalogMode('recharge')}
+                      className={`rounded-md border px-3 py-2 font-orbitron text-[9px] font-black uppercase tracking-widest transition-colors ${catalogMode === 'recharge' ? 'border-cyann bg-cyan text-[#031018]' : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:border-cyann hover:text-white'}`}
+                    >
+                      Recharge Packs
+                    </button>
+                  </div>
                 </div>
 
                 {catalogMode === 'membership' ? (
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <form onSubmit={handleSaveMembershipCatalog} className="space-y-3 bg-white/5 rounded-xl p-4 border border-white/10">
-                      <div className="text-sm font-orbitron font-black text-white uppercase tracking-widest">{editingCatalogId ? 'Edit Membership Tier' : 'Add Membership Tier'}</div>
-                      <input value={membershipForm.slug} onChange={(e) => setMembershipForm({ ...membershipForm, slug: e.target.value })} placeholder="slug (e.g. gold)" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <input value={membershipForm.name} onChange={(e) => setMembershipForm({ ...membershipForm, name: e.target.value })} placeholder="Display name" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <input value={membershipForm.short_name} onChange={(e) => setMembershipForm({ ...membershipForm, short_name: e.target.value })} placeholder="Short name" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <input type="number" value={membershipForm.price} onChange={(e) => setMembershipForm({ ...membershipForm, price: e.target.value })} placeholder="Price" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <input value={membershipForm.color} onChange={(e) => setMembershipForm({ ...membershipForm, color: e.target.value })} placeholder="Color (gray/amber/yellow)" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <input value={membershipForm.icon} onChange={(e) => setMembershipForm({ ...membershipForm, icon: e.target.value })} placeholder="Icon" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <textarea value={membershipForm.benefits} onChange={(e) => setMembershipForm({ ...membershipForm, benefits: e.target.value })} placeholder="Benefits (one per line)" rows="4" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <textarea value={membershipForm.description} onChange={(e) => setMembershipForm({ ...membershipForm, description: e.target.value })} placeholder="Description" rows="2" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <input value={membershipForm.badge_label} onChange={(e) => setMembershipForm({ ...membershipForm, badge_label: e.target.value })} placeholder="Badge label" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <div className="flex gap-4 text-sm text-gray-300">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <form onSubmit={handleSaveMembershipCatalog} className="space-y-2.5 rounded-lg border border-cyann bg-[#091a2b] p-3">
+                      <div className="border-b border-cyann pb-2 font-orbitron text-[10px] font-black uppercase tracking-widest text-white">{editingCatalogId ? 'Edit Membership Tier' : 'Add Membership Tier'}</div>
+                      <input value={membershipForm.slug} onChange={(e) => setMembershipForm({ ...membershipForm, slug: e.target.value })} placeholder="slug (e.g. gold)" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <input value={membershipForm.name} onChange={(e) => setMembershipForm({ ...membershipForm, name: e.target.value })} placeholder="Display name" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <input value={membershipForm.short_name} onChange={(e) => setMembershipForm({ ...membershipForm, short_name: e.target.value })} placeholder="Short name" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <input type="number" value={membershipForm.price} onChange={(e) => setMembershipForm({ ...membershipForm, price: e.target.value })} placeholder="Price" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <input value={membershipForm.color} onChange={(e) => setMembershipForm({ ...membershipForm, color: e.target.value })} placeholder="Color (gray/amber/yellow)" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <input value={membershipForm.icon} onChange={(e) => setMembershipForm({ ...membershipForm, icon: e.target.value })} placeholder="Icon" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <textarea value={membershipForm.benefits} onChange={(e) => setMembershipForm({ ...membershipForm, benefits: e.target.value })} placeholder="Benefits (one per line)" rows="3" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <textarea value={membershipForm.description} onChange={(e) => setMembershipForm({ ...membershipForm, description: e.target.value })} placeholder="Description" rows="2" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <input value={membershipForm.badge_label} onChange={(e) => setMembershipForm({ ...membershipForm, badge_label: e.target.value })} placeholder="Badge label" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <div className="flex gap-4 text-xs text-gray-300">
                         <label className="flex items-center gap-2"><input type="checkbox" checked={membershipForm.is_popular} onChange={(e) => setMembershipForm({ ...membershipForm, is_popular: e.target.checked })} /> Popular</label>
                         <label className="flex items-center gap-2"><input type="checkbox" checked={membershipForm.is_active} onChange={(e) => setMembershipForm({ ...membershipForm, is_active: e.target.checked })} /> Active</label>
                       </div>
-                      <input type="number" value={membershipForm.sort_order} onChange={(e) => setMembershipForm({ ...membershipForm, sort_order: e.target.value })} placeholder="Sort order" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
+                      <input type="number" value={membershipForm.sort_order} onChange={(e) => setMembershipForm({ ...membershipForm, sort_order: e.target.value })} placeholder="Sort order" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
                       <div className="flex gap-2">
-                        <button type="submit" className="px-4 py-2 bg-primary text-dark rounded-lg font-bold">{editingCatalogId ? 'Save Tier' : 'Create Tier'}</button>
-                        <button type="button" onClick={resetCatalogForms} className="px-4 py-2 bg-white/10 text-white rounded-lg">Reset</button>
+                        <button type="submit" className="rounded-md bg-primary px-3 py-1.5 text-[10px] font-bold text-dark">{editingCatalogId ? 'Save Tier' : 'Create Tier'}</button>
+                        <button type="button" onClick={resetCatalogForms} className="rounded-md bg-white/10 px-3 py-1.5 text-[10px] text-white">Reset</button>
                       </div>
                     </form>
                     <div className="space-y-3">
+                      <div className="font-orbitron text-[10px] font-black uppercase tracking-widest text-slate-300">Available tiers</div>
                       {catalogLoading ? <div className="text-gray-400">Loading catalog…</div> : membershipItems.map(item => (
-                        <div key={item.id} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                        <div key={item.id} className="rounded-lg border border-cyann bg-[#091a2b] p-3">
                           <div className="flex justify-between items-start gap-2">
                             <div>
-                              <div className="font-bold text-white">{item.name}</div>
-                              <div className="text-xs text-gray-400">Slug: {item.slug} • Price: ◈ {item.price} • Order: {item.sort_order}</div>
+                              <div className="text-xs font-bold text-white">{item.name}</div>
+                              <div className="text-[10px] text-gray-400">Slug: {item.slug} • Price: ◈ {item.price} • Order: {item.sort_order}</div>
                             </div>
                             <div className="flex gap-2">
-                              <button onClick={() => startCatalogEdit(item, 'membership')} className="px-2 py-1 text-xs bg-primary/20 text-primary rounded">Edit</button>
-                              <button onClick={() => handleDeleteCatalogItem('membership', item.id)} className="px-2 py-1 text-xs bg-pink/20 text-pink rounded">Delete</button>
+                              <button onClick={() => startCatalogEdit(item, 'membership')} className="rounded-md border border-cyann bg-cyan-400/10 px-2.5 py-1.5 text-[10px] font-bold text-cyan-300 transition-colors hover:bg-cyan-400 hover:text-[#031018]">Edit</button>
+                              <button onClick={() => handleDeleteCatalogItem('membership', item.id)} className="rounded-md border border-rose-900 bg-rose-950/40 px-2.5 py-1.5 text-[10px] font-bold text-rose-300 transition-colors hover:bg-rose-600 hover:text-white">Delete</button>
                             </div>
                           </div>
                         </div>
@@ -952,31 +988,32 @@ const AdminPanel = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <form onSubmit={handleSaveRechargeCatalog} className="space-y-3 bg-white/5 rounded-xl p-4 border border-white/10">
-                      <div className="text-sm font-orbitron font-black text-white uppercase tracking-widest">{editingCatalogId ? 'Edit Recharge Package' : 'Add Recharge Package'}</div>
-                      <input type="number" value={rechargeForm.amount} onChange={(e) => setRechargeForm({ ...rechargeForm, amount: e.target.value })} placeholder="Package amount" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <input type="number" value={rechargeForm.bonus} onChange={(e) => setRechargeForm({ ...rechargeForm, bonus: e.target.value })} placeholder="Bonus amount" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <input type="number" value={rechargeForm.cost} onChange={(e) => setRechargeForm({ ...rechargeForm, cost: e.target.value })} placeholder="Cost" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <input value={rechargeForm.icon} onChange={(e) => setRechargeForm({ ...rechargeForm, icon: e.target.value })} placeholder="Icon class" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
-                      <div className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={rechargeForm.is_active} onChange={(e) => setRechargeForm({ ...rechargeForm, is_active: e.target.checked })} /> Active</div>
-                      <input type="number" value={rechargeForm.sort_order} onChange={(e) => setRechargeForm({ ...rechargeForm, sort_order: e.target.value })} placeholder="Sort order" className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white" />
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <form onSubmit={handleSaveRechargeCatalog} className="space-y-2.5 rounded-lg border border-cyann bg-[#091a2b] p-3">
+                      <div className="border-b border-cyann pb-2 font-orbitron text-[10px] font-black uppercase tracking-widest text-white">{editingCatalogId ? 'Edit Recharge Package' : 'Add Recharge Package'}</div>
+                      <input type="number" value={rechargeForm.amount} onChange={(e) => setRechargeForm({ ...rechargeForm, amount: e.target.value })} placeholder="Package amount" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <input type="number" value={rechargeForm.bonus} onChange={(e) => setRechargeForm({ ...rechargeForm, bonus: e.target.value })} placeholder="Bonus amount" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <input type="number" value={rechargeForm.cost} onChange={(e) => setRechargeForm({ ...rechargeForm, cost: e.target.value })} placeholder="Cost" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <input value={rechargeForm.icon} onChange={(e) => setRechargeForm({ ...rechargeForm, icon: e.target.value })} placeholder="Icon class" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
+                      <div className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={rechargeForm.is_active} onChange={(e) => setRechargeForm({ ...rechargeForm, is_active: e.target.checked })} /> Active</div>
+                      <input type="number" value={rechargeForm.sort_order} onChange={(e) => setRechargeForm({ ...rechargeForm, sort_order: e.target.value })} placeholder="Sort order" className="w-full rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-white" />
                       <div className="flex gap-2">
-                        <button type="submit" className="px-4 py-2 bg-primary text-dark rounded-lg font-bold">{editingCatalogId ? 'Save Package' : 'Create Package'}</button>
-                        <button type="button" onClick={resetCatalogForms} className="px-4 py-2 bg-white/10 text-white rounded-lg">Reset</button>
+                        <button type="submit" className="rounded-md bg-primary px-3 py-1.5 text-[10px] font-bold text-dark">{editingCatalogId ? 'Save Package' : 'Create Package'}</button>
+                        <button type="button" onClick={resetCatalogForms} className="rounded-md bg-white/10 px-3 py-1.5 text-[10px] text-white">Reset</button>
                       </div>
                     </form>
                     <div className="space-y-3">
+                      <div className="font-orbitron text-[10px] font-black uppercase tracking-widest text-slate-300">Available packages</div>
                       {catalogLoading ? <div className="text-gray-400">Loading catalog…</div> : rechargeItems.map(item => (
-                        <div key={item.id} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                        <div key={item.id} className="rounded-lg border border-cyann bg-[#091a2b] p-3">
                           <div className="flex justify-between items-start gap-2">
                             <div>
-                              <div className="font-bold text-white">◈ {item.amount} + ◈ {item.bonus}</div>
-                              <div className="text-xs text-gray-400">Cost: रु {item.cost} • Order: {item.sort_order}</div>
+                              <div className="text-xs font-bold text-white">◈ {item.amount} + ◈ {item.bonus}</div>
+                              <div className="text-[10px] text-gray-400">Cost: रु {item.cost} • Order: {item.sort_order}</div>
                             </div>
                             <div className="flex gap-2">
-                              <button onClick={() => startCatalogEdit(item, 'recharge')} className="px-2 py-1 text-xs bg-primary/20 text-primary rounded">Edit</button>
-                              <button onClick={() => handleDeleteCatalogItem('recharge', item.id)} className="px-2 py-1 text-xs bg-pink/20 text-pink rounded">Delete</button>
+                              <button onClick={() => startCatalogEdit(item, 'recharge')} className="rounded-md border border-cyann bg-cyan-400/10 px-2.5 py-1.5 text-[10px] font-bold text-cyan-300 transition-colors hover:bg-cyan-400 hover:text-[#031018]">Edit</button>
+                              <button onClick={() => handleDeleteCatalogItem('recharge', item.id)} className="rounded-md border border-rose-900 bg-rose-950/40 px-2.5 py-1.5 text-[10px] font-bold text-rose-300 transition-colors hover:bg-rose-600 hover:text-white">Delete</button>
                             </div>
                           </div>
                         </div>
@@ -984,38 +1021,95 @@ const AdminPanel = ({
                     </div>
                   </div>
                 )}
-              </div>
+              </section>
             )}
 
             {activeView !== 'dashboard' && activeView !== 'logs' && activeView !== 'players' && activeView !== 'catalog' && (
-              <div className="bg-bg-card rounded-2xl border border-white/5 overflow-hidden animate-fade-in shadow-2xl">
-                <div className="p-4 md:p-6 border-b border-white/5 flex flex-col gap-4">
+              <section className={`animate-fade-in mx-auto overflow-hidden rounded-xl border border-cyann bg-[#061321] shadow-[0_16px_45px_rgba(0,0,0,0.22)] ${activeView === 'registrations' ? 'max-w-4xl' : ''}`}>
+                {['tournaments', 'leaderboard', 'registrations'].includes(activeView) && (
+                  <div className="flex flex-col gap-3 border-b border-cyann px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyann bg-cyan-400/10 text-lg text-cyan-300">
+                        <i className={`fa-solid ${activeView === 'tournaments' ? 'fa-trophy' : activeView === 'leaderboard' ? 'fa-ranking-star' : 'fa-users'}`}></i>
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="font-orbitron text-sm font-black uppercase tracking-widest text-white">
+                          {activeView === 'tournaments' ? 'Tournaments' : activeView === 'leaderboard' ? 'Leaderboard' : 'Teams'}
+                        </h2>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {activeView === 'tournaments'
+                            ? 'Manage and organize your esports tournaments.'
+                            : activeView === 'leaderboard'
+                              ? 'Manage team rankings and match performance.'
+                              : 'Review team registrations and player details.'}
+                        </p>
+                      </div>
+                    </div>
+                    {['tournaments', 'leaderboard'].includes(activeView) && (
+                      <button
+                        onClick={resetForms}
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md border border-cyann bg-cyan px-4 py-2.5 font-orbitron text-[9px] font-black uppercase tracking-widest text-[#031018] transition-colors hover:bg-cyan-300"
+                      >
+                        <i className="fa-solid fa-plus"></i>
+                        {activeView === 'tournaments' ? 'Add Tournament' : 'Add Ranking'}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <div className={`flex flex-col border-b border-cyann lg:flex-row lg:items-center ${activeView === 'registrations' ? 'gap-3 p-3 sm:p-4' : 'gap-4 p-4 sm:p-5'}`}>
                   <div className="relative w-full flex-grow">
                     <i className="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
                     <input
                       type="text"
-                      placeholder={`Search nexus ${activeView}...`}
+                      placeholder={`Search ${activeView}...`}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white font-medium focus:border-primary outline-none transition-all placeholder:text-gray-700 text-sm"
+                      className={`w-full rounded-lg border border-slate-700 bg-slate-950/50 pl-10 pr-3 font-medium text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-500 ${activeView === 'registrations' ? 'py-2 text-xs' : 'py-3 pr-4 text-sm'}`}
                     />
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-wrap">
+                  <div className="flex flex-wrap items-center gap-2">
                     {activeView === 'registrations' && (
                       <button
                         onClick={refreshRegistrations}
                         disabled={isRefreshingRegistrations}
-                        className={`px-3 md:px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-orbitron font-bold uppercase tracking-widest transition-all border flex-shrink-0 ${isRefreshingRegistrations ? 'bg-white/10 text-gray-400 border-white/10 cursor-not-allowed' : 'bg-tertiary/20 text-tertiary border-tertiary/30 hover:bg-tertiary hover:text-dark'}`}
+                        className="rounded-md border border-cyann bg-cyan-400/10 px-2.5 py-1.5 text-[8px] font-orbitron font-bold uppercase tracking-widest text-cyan-300 transition-colors hover:bg-cyan-400 hover:text-[#031018] disabled:cursor-wait disabled:opacity-50"
                       >
                         <i className={`fa-solid ${isRefreshingRegistrations ? 'fa-spinner fa-spin' : 'fa-rotate-right'} mr-1`}></i>
                         {isRefreshingRegistrations ? 'Refreshing...' : 'Refresh'}
                       </button>
                     )}
-                    {['all', 'freefire', 'pubg', 'ludo'].map(g => (
+                    {['tournaments', 'leaderboard'].includes(activeView) ? (
+                      <>
+                        <select
+                          aria-label="Filter by game"
+                          value={filterGame}
+                          onChange={(e) => setFilterGame(e.target.value)}
+                          className="rounded-md border border-slate-700 bg-[#091827] px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-cyan-500"
+                        >
+                          <option value="all">All Games</option>
+                          <option value="freefire">Free Fire</option>
+                          <option value="pubg">PUBG Mobile</option>
+                          <option value="ludo">Ludo King</option>
+                        </select>
+                        {activeView === 'tournaments' && (
+                          <select
+                            aria-label="Filter tournaments by status"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="rounded-md border border-slate-700 bg-[#091827] px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-cyan-500"
+                          >
+                            <option value="all">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="upcoming">Upcoming</option>
+                            <option value="draft">Draft</option>
+                          </select>
+                        )}
+                      </>
+                    ) : ['all', 'freefire', 'pubg', 'ludo'].map(g => (
                       <button
                         key={g}
                         onClick={() => setFilterGame(g)}
-                        className={`px-3 md:px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-orbitron font-bold uppercase tracking-widest transition-all flex-shrink-0 ${filterGame === g ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/5 text-gray-500 border border-transparent hover:border-white/20'}`}
+                        className={`rounded-md border px-3 py-2 text-[9px] font-orbitron font-bold uppercase tracking-widest transition-colors ${filterGame === g ? 'border-cyann bg-cyan-400/10 text-cyan-300' : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-600 hover:text-white'}`}
                       >
                         {g}
                       </button>
@@ -1024,55 +1118,209 @@ const AdminPanel = ({
                 </div>
 
                 {activeView === 'registrations' && (
-                  <div className="p-4 md:p-6 bg-white/2 border-b border-white/5 grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                    <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/10">
-                      <div className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Total Teams</div>
-                      <div className="text-2xl md:text-3xl font-orbitron font-black text-primary">{registrations.length}</div>
+                  <div className="grid grid-cols-2 gap-2 border-b border-cyann bg-[#071625] p-3 sm:grid-cols-3">
+                    <div className="rounded-lg border border-cyann bg-[#091a2b] px-3 py-2">
+                      <div className="mb-0.5 text-[8px] font-bold uppercase tracking-widest text-gray-500">Total Teams</div>
+                      <div className="font-orbitron text-lg font-black text-primary">{registrations.length}</div>
                     </div>
-                    <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/10">
-                      <div className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">After Filters</div>
-                      <div className="text-2xl md:text-3xl font-orbitron font-black text-tertiary">{filteredList.length}</div>
+                    <div className="rounded-lg border border-cyann bg-[#091a2b] px-3 py-2">
+                      <div className="mb-0.5 text-[8px] font-bold uppercase tracking-widest text-gray-500">After Filters</div>
+                      <div className="font-orbitron text-lg font-black text-tertiary">{filteredList.length}</div>
                     </div>
                     {(search || filterGame !== 'all') && (
-                      <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/10">
-                        <div className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Hidden Records</div>
-                        <div className="text-2xl md:text-3xl font-orbitron font-black text-gray-400">{registrations.length - filteredList.length}</div>
+                      <div className="rounded-lg border border-cyann bg-[#091a2b] px-3 py-2">
+                        <div className="mb-0.5 text-[8px] font-bold uppercase tracking-widest text-gray-500">Hidden Records</div>
+                        <div className="font-orbitron text-lg font-black text-gray-400">{registrations.length - filteredList.length}</div>
                       </div>
                     )}
                   </div>
                 )}
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
+                <div className={`overflow-x-auto ${activeView === 'registrations' ? '[&_td]:!px-3 [&_td]:!py-2.5' : ''}`}>
+                  <table className={`${['tournaments', 'leaderboard'].includes(activeView) ? 'min-w-[540px]' : 'min-w-full'} w-full text-left ${activeView === 'registrations' ? 'text-xs' : 'text-sm'}`}>
                     <thead>
-                      <tr className="bg-white/2 text-[9px] md:text-[10px] font-orbitron text-gray-500 uppercase tracking-widest">
-                        <th className="p-4 md:p-6">Nexus Entity</th>
-                        <th className="p-4 md:p-6">Sector Metadata</th>
-                        <th className="p-4 md:p-6 text-right">Actions</th>
-                      </tr>
+                      {activeView === 'tournaments' ? (
+                        <tr className="border-b border-cyann bg-[#0a1a2a] text-[9px] font-orbitron uppercase tracking-widest text-slate-400">
+                          <th className="w-10 px-3 py-3 text-center">#</th>
+                          <th className="px-3 py-3">Tournament</th>
+                          <th className="px-3 py-3">Game</th>
+                          <th className="px-3 py-3">Registration</th>
+                          <th className="px-3 py-3">Date / Status</th>
+                          <th className="px-3 py-3 text-right">Actions</th>
+                        </tr>
+                      ) : activeView === 'leaderboard' ? (
+                        <tr className="border-b border-cyann bg-[#0a1a2a] text-[9px] font-orbitron uppercase tracking-widest text-slate-400">
+                          <th className="w-10 px-3 py-3 text-center">#</th>
+                          <th className="px-3 py-3">Team</th>
+                          <th className="px-3 py-3">Game</th>
+                          <th className="px-3 py-3 text-right">Rank</th>
+                          <th className="px-3 py-3 text-right">Performance</th>
+                          <th className="px-3 py-3 text-right">Actions</th>
+                        </tr>
+                      ) : (
+                        <tr className="border-b border-cyann bg-[#0a1a2a] font-orbitron uppercase tracking-widest text-slate-400">
+                          <th className="px-3 py-2 text-[8px] sm:px-4">Team</th>
+                          <th className="px-3 py-2 text-[8px] sm:px-4">Details</th>
+                          <th className="px-3 py-2 text-right text-[8px] sm:px-4">Actions</th>
+                        </tr>
+                      )}
                     </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {filteredList.map((item) => (
-                        <tr key={item.id} className="hover:bg-white/2 transition-colors">
-                          <td className="p-4 md:p-6">
-                            <div className="flex items-center gap-2 md:gap-4">
+                    <tbody className="divide-y divide-cyan-950/70">
+                      {pageItems.length === 0 && (
+                        <tr>
+                          <td colSpan={['tournaments', 'leaderboard'].includes(activeView) ? 6 : 3} className="px-4 py-12 text-center text-xs text-slate-400">
+                            {search || filterGame !== 'all' || filterStatus !== 'all' ? 'No records match these filters.' : `No ${activeView} found yet.`}
+                          </td>
+                        </tr>
+                      )}
+                      {pageItems.map((item, pageIndex) => {
+                        const index = listPage * listPageSize + pageIndex;
+                        const gameLabel = item.game || item.type || 'Game not set';
+                        if (activeView === 'tournaments') {
+                          const status = String(item.status || 'draft').toLowerCase();
+                          const statusStyle = status === 'active'
+                            ? 'border-emerald-700/60 bg-emerald-950/50 text-emerald-300'
+                            : status === 'upcoming'
+                              ? 'border-cyan-700/60 bg-cyan-950/50 text-cyan-300'
+                              : 'border-slate-700 bg-slate-900 text-slate-300';
+                          const registered = registrations.filter((registration) => registration.tournamentid === item.id).length;
+                          const maxSlots = Number(item.max_slots || item.maxSlots || 0);
+
+                          return (
+                            <tr key={item.id} className="transition-colors hover:bg-cyan-400/[0.035]">
+                              <td className="px-3 py-3 text-center text-xs font-semibold text-slate-500">{index + 1}</td>
+                              <td className="px-3 py-3">
+                                <div className="flex min-w-[150px] items-center gap-2.5">
+                                  {item.image ? (
+                                    <img src={item.image} alt="" className="h-10 w-10 shrink-0 rounded-md border border-cyann object-cover" />
+                                  ) : (
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-cyann bg-cyan-400/10 text-cyan-300">
+                                      <i className="fa-solid fa-trophy"></i>
+                                    </span>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="line-clamp-2 text-xs font-bold leading-snug text-slate-100">{item.title || 'Untitled tournament'}</div>
+                                    <div className="mt-1 truncate text-[9px] text-slate-500">{item.location || 'Location not set'}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3 text-[10px] font-bold text-slate-300">{gameLabel}</td>
+                              <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-300">
+                                <span className="text-slate-100">{registered}</span>
+                                <span className="text-slate-500"> / {maxSlots || '—'}</span>
+                              </td>
+                              <td className="px-3 py-3">
+                                <div className="whitespace-nowrap text-[10px] text-slate-300">{item.date || 'Date not set'}</div>
+                                <span className={`mt-1 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[9px] font-bold capitalize ${statusStyle}`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${status === 'active' ? 'bg-emerald-400' : status === 'upcoming' ? 'bg-cyan-400' : 'bg-slate-400'}`}></span>
+                                  {status}
+                                </span>
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3">
+                                <div className="flex justify-end gap-1.5">
+                                  <button
+                                    onClick={() => { setActiveView('registrations'); setSearch(item.title || ''); }}
+                                    title="View registrations"
+                                    aria-label={`View registrations for ${item.title || 'tournament'}`}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-cyan-700 hover:text-cyan-300"
+                                  >
+                                    <i className="fa-solid fa-users text-xs"></i>
+                                  </button>
+                                  <button
+                                    onClick={() => startEdit(item)}
+                                    title="Edit tournament"
+                                    aria-label={`Edit ${item.title || 'tournament'}`}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md border border-cyann bg-cyan-400/10 text-cyan-300 transition-colors hover:bg-cyan-400 hover:text-[#031018]"
+                                  >
+                                    <i className="fa-solid fa-pen-to-square text-xs"></i>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(item.id)}
+                                    title="Delete tournament"
+                                    aria-label={`Delete ${item.title || 'tournament'}`}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md border border-rose-900 bg-rose-950/40 text-rose-300 transition-colors hover:bg-rose-600 hover:text-white"
+                                  >
+                                    <i className="fa-solid fa-trash-can text-xs"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        if (activeView === 'leaderboard') {
+                          return (
+                            <tr key={item.id} className="transition-colors hover:bg-cyan-400/[0.035]">
+                              <td className="px-3 py-3 text-center font-orbitron text-xs font-black text-cyan-300">{item.rank || index + 1}</td>
+                              <td className="px-3 py-3">
+                                <div className="flex min-w-[140px] items-center gap-2.5">
+                                  {item.avatar ? (
+                                    <img src={item.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full border border-cyann object-cover" />
+                                  ) : (
+                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyann bg-cyan-400/10 text-cyan-300">
+                                      <i className="fa-solid fa-users text-xs"></i>
+                                    </span>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="truncate text-xs font-bold text-slate-100">{item.teamname || item.playername || 'Unnamed team'}</div>
+                                    <div className="mt-1 text-[9px] text-slate-500">Leaderboard entry</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3 text-[10px] font-bold text-slate-300">{gameLabel}</td>
+                              <td className="px-3 py-3 text-right font-orbitron text-xs font-black text-slate-100">{item.rank || '—'}</td>
+                              <td className="whitespace-nowrap px-3 py-3 text-right text-[10px] text-slate-300">
+                                <span className="text-cyan-300">{Number(item.points || 0).toLocaleString()} pts</span>
+                                <span className="mx-1 text-slate-600">·</span>
+                                {Number(item.kills || 0)} K
+                                <span className="mx-1 text-slate-600">·</span>
+                                {Number(item.wins || 0)} W
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3">
+                                <div className="flex justify-end gap-1.5">
+                                  <button
+                                    onClick={() => startEdit(item)}
+                                    title="Edit ranking"
+                                    aria-label={`Edit ranking for ${item.teamname || item.playername || 'team'}`}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md border border-cyann bg-cyan-400/10 text-cyan-300 transition-colors hover:bg-cyan-400 hover:text-[#031018]"
+                                  >
+                                    <i className="fa-solid fa-pen-to-square text-xs"></i>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(item.id)}
+                                    title="Delete ranking"
+                                    aria-label={`Delete ranking for ${item.teamname || item.playername || 'team'}`}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md border border-rose-900 bg-rose-950/40 text-rose-300 transition-colors hover:bg-rose-600 hover:text-white"
+                                  >
+                                    <i className="fa-solid fa-trash-can text-xs"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return (
+                        <tr key={item.id} className={`transition-colors hover:bg-cyan-400/[0.035] ${activeView === 'registrations' ? 'text-[10px]' : ''}`}>
+                          <td className={activeView === 'streams' || activeView === 'registrations' ? 'px-3 py-2.5 sm:px-4' : 'px-4 py-3 sm:px-5 sm:py-4'}>
+                            <div className={`flex items-center ${activeView === 'registrations' ? 'gap-2' : 'gap-2 md:gap-4'}`}>
                               {item.image || item.avatar || item.team_logo ? (
-                                <img src={item.image || item.avatar || item.team_logo} className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover border border-white/10 flex-shrink-0" alt="" />
+                                <img src={item.image || item.avatar || item.team_logo} className={`${activeView === 'registrations' ? 'h-8 w-8' : 'h-10 w-10'} shrink-0 rounded-lg border border-cyann object-cover`} alt="" />
                               ) : (
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/5 rounded-lg flex items-center justify-center border border-white/10 flex-shrink-0">
-                                  <i className="fa-solid fa-id-badge text-gray-700"></i>
+                                <div className={`${activeView === 'registrations' ? 'h-8 w-8' : 'h-10 w-10'} flex shrink-0 items-center justify-center rounded-lg border border-cyann bg-cyan-400/10`}>
+                                  <i className={`fa-solid fa-id-badge text-cyan-300 ${activeView === 'registrations' ? 'text-xs' : ''}`}></i>
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <div className="text-white font-bold text-sm md:text-base line-clamp-1">{item.title || item.team_name || item.teamname || item.playername}</div>
-                                <div className="text-gray-500 text-[8px] md:text-[10px] font-bold uppercase tracking-widest truncate">
+                                <div className={`line-clamp-1 font-bold text-white ${activeView === 'streams' || activeView === 'registrations' ? 'text-xs' : 'text-sm md:text-base'}`}>{item.title || item.team_name || item.teamname || item.playername}</div>
+                                <div className={`truncate font-bold uppercase tracking-widest text-gray-500 ${activeView === 'streams' || activeView === 'registrations' ? 'text-[8px]' : 'text-[8px] md:text-[10px]'}`}>
                                   {item.game || item.type || (activeView === 'registrations' ? `Sector: ${item.tournamenttitle}` : 'System Data')}
                                 </div>
                               </div>
                             </div>
                           </td>
-                          <td className="p-4 md:p-6">
-                            <div className="text-[8px] md:text-xs space-y-0.5 md:space-y-1">
+                          <td className={activeView === 'streams' || activeView === 'registrations' ? 'px-3 py-2.5 text-[10px] sm:px-4' : 'px-4 py-3 text-xs sm:px-5 sm:py-4'}>
+                            <div className="space-y-1">
                               {item.prize && <div className="text-primary font-bold">Reward: {item.prize}</div>}
                               {item.maxSlots && <div className="text-gray-400">Slots: {item.max_slots}</div>}
                               {activeView === 'leaderboard' && <div className="text-accent font-bold">Rank: {item.rank || '-'} | Points: {item.points || 0} | K: {item.kills || 0} | W: {item.wins || 0}</div>}
@@ -1088,7 +1336,7 @@ const AdminPanel = ({
                                   Contact: <span className="text-white font-bold">{item.manager_contact}</span>
                                 </div>
                               )}
-                              {item.youtubeid && <div className="text-accent font-bold flex items-center gap-1"><i className="fab fa-youtube"></i> {item.youtubeid}</div>}
+                              {item.youtubeid && <div className={`flex items-center gap-1 font-bold text-accent ${activeView === 'streams' ? 'text-[10px]' : ''}`}><i className="fab fa-youtube"></i> {item.youtubeid}</div>}
                               {activeView === 'registrations' && (
                                 <div className={`font-bold flex items-center gap-1 ${isSmsSent(item) ? 'text-[#25D366]' : 'text-yellow-400'}`}>
                                   <i className={`fa-solid ${isSmsSent(item) ? 'fa-circle-check' : 'fa-signal'}`}></i>
@@ -1107,7 +1355,7 @@ const AdminPanel = ({
                               )}
                             </div>
                           </td>
-                          <td className="p-4 md:p-6 text-right">
+                          <td className={activeView === 'streams' || activeView === 'registrations' ? 'px-3 py-2.5 text-right sm:px-4' : 'px-4 py-3 text-right sm:px-5 sm:py-4'}>
                             <div className="flex justify-end gap-1 md:gap-2">
                               {activeView === 'tournaments' && (
                                 <button
@@ -1122,7 +1370,7 @@ const AdminPanel = ({
                                 <button
                                   onClick={() => setViewingReg(item)}
                                   title="View Dossier"
-                                  className="w-8 h-8 md:w-10 md:h-10 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-primary hover:bg-primary hover:text-dark transition-all flex-shrink-0"
+                                  className={`${activeView === 'registrations' ? 'h-8 w-8' : 'w-8 h-8 md:w-10 md:h-10'} flex flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-primary transition-all hover:bg-primary hover:text-dark`}
                                 >
                                   <i className="fa-solid fa-address-card text-xs md:text-sm"></i>
                                 </button>
@@ -1132,17 +1380,39 @@ const AdminPanel = ({
                                   <i className="fa-solid fa-pen-to-square text-xs md:text-sm"></i>
                                 </button>
                               )}
-                              <button onClick={() => handleDelete(item.id)} className="w-8 h-8 md:w-10 md:h-10 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center text-pink hover:bg-pink hover:text-white transition-all flex-shrink-0">
+                              <button onClick={() => handleDelete(item.id)} className={`${activeView === 'registrations' ? 'h-8 w-8' : 'w-8 h-8 md:w-10 md:h-10'} flex flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-pink transition-all hover:bg-pink hover:text-white`}>
                                 <i className="fa-solid fa-trash-can text-xs md:text-sm"></i>
                               </button>
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
-                </div>
               </div>
+              {['tournaments', 'leaderboard'].includes(activeView) && (
+                <div className="flex items-center justify-between border-t border-cyann bg-[#071625] px-3 py-2.5 sm:px-4">
+                  <button
+                    onClick={() => setListPage((current) => Math.max(0, current - 1))}
+                    disabled={listPage === 0}
+                    className="rounded-md border border-slate-800 bg-slate-900/70 px-3 py-1.5 text-[10px] font-semibold text-slate-300 transition-colors hover:border-cyan-800 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <i className="fa-solid fa-chevron-left mr-1.5"></i>Previous
+                  </button>
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    Page {listPage + 1} of {Math.max(1, Math.ceil(rankedList.length / listPageSize))}
+                  </span>
+                  <button
+                    onClick={() => setListPage((current) => Math.min(Math.ceil(rankedList.length / listPageSize) - 1, current + 1))}
+                    disabled={listPage >= Math.ceil(rankedList.length / listPageSize) - 1}
+                    className="rounded-md border border-slate-800 bg-slate-900/70 px-3 py-1.5 text-[10px] font-semibold text-slate-300 transition-colors hover:border-cyan-800 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next<i className="fa-solid fa-chevron-right ml-1.5"></i>
+                  </button>
+                </div>
+              )}
+              </section>
             )}
 
             {activeView === 'players' && (
@@ -1158,11 +1428,14 @@ const AdminPanel = ({
             )}
 
             {activeView === 'logs' && (
-              <div className="bg-bg-card rounded-2xl border border-white/5 p-4 md:p-8 animate-fade-in shadow-2xl">
-                <h3 className="text-lg md:text-xl font-orbitron font-black text-white uppercase tracking-widest mb-6">Nexus System Logs</h3>
-                <div className="space-y-2 md:space-y-4 max-h-[400px] md:max-h-[600px] overflow-y-auto pr-4 custom-scrollbar font-mono text-[9px] md:text-[10px]">
+              <section className="animate-fade-in overflow-hidden rounded-xl border border-cyann bg-[#061321]">
+                <div className="border-b border-cyann px-4 py-4 sm:px-5">
+                  <h3 className="font-orbitron text-sm font-black uppercase tracking-widest text-white">System logs</h3>
+                  <p className="mt-1 text-xs text-slate-400">Recent activity recorded by the admin system.</p>
+                </div>
+                <div className="max-h-[640px] space-y-2 overflow-y-auto p-3 font-mono text-[10px] custom-scrollbar sm:p-4">
                   {systemLogs.length === 0 && (
-                    <div className="p-4 bg-white/2 border border-white/5 rounded-lg text-gray-500 uppercase tracking-widest text-center">
+                    <div className="rounded-lg border border-cyann bg-[#091a2b] p-8 text-center text-xs uppercase tracking-widest text-slate-500">
                       No logs available yet
                     </div>
                   )}
@@ -1172,35 +1445,48 @@ const AdminPanel = ({
                     const logEndpoint = log.endpoint || log.path || log.route || 'Unknown endpoint';
 
                     return (
-                      <div key={log.id} className="p-3 md:p-4 bg-white/2 border-l-4 border-primary/40 rounded-r-lg flex flex-col md:flex-row md:justify-between md:items-center gap-2 md:gap-4 group hover:bg-white/5 transition-all">
+                      <div key={log.id} className="flex flex-col gap-2 rounded-lg border border-cyann bg-[#091a2b] p-3 transition-colors hover:border-cyan-700 md:flex-row md:items-center md:justify-between md:gap-4">
                         <div className="flex flex-col gap-1 md:gap-0 md:flex-row md:items-center md:gap-4 min-w-0">
-                          <span className="text-gray-600 truncate">[{logTimestamp}]</span>
-                          <span className={`font-black uppercase tracking-wider flex-shrink-0 ${logMethod === 'POST' ? 'text-tertiary' : logMethod === 'PUT' ? 'text-primary' : 'text-accent'}`}>{logMethod}</span>
-                          <span className="text-white truncate">{logEndpoint}</span>
+                          <span className="shrink-0 text-slate-500">[{logTimestamp}]</span>
+                          <span className={`shrink-0 font-black uppercase tracking-wider ${logMethod === 'POST' ? 'text-emerald-300' : logMethod === 'PUT' ? 'text-cyan-300' : 'text-slate-300'}`}>{logMethod}</span>
+                          <span className="truncate text-slate-200">{logEndpoint}</span>
                         </div>
                         <span className="text-tertiary font-bold flex-shrink-0">200_OK</span>
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              </section>
             )}
           </div>
 
-          <div className={activeView === 'players' ? 'hidden' : 'lg:col-span-5 xl:col-span-4'}>
+          <div className={hasEditorPanel ? 'md:col-span-5 xl:col-span-4' : 'hidden'}>
             {['tournaments', 'leaderboard', 'streams'].includes(activeView) && (
-              <div className="bg-bg-card p-6 md:p-8 rounded-2xl border border-primary/20 lg:sticky lg:top-24 shadow-2xl animate-fade-in max-h-[calc(100vh-120px)] overflow-y-auto custom-scrollbar">
-                <div className="flex items-center justify-between mb-6 md:mb-8 gap-4">
-                  <h2 className="text-lg md:text-xl font-orbitron font-black text-white uppercase tracking-widest">
-                    {editingId ? 'Modify Record' : 'Create Record'}
-                  </h2>
+              <div className="animate-fade-in max-h-[calc(100vh-88px)] overflow-y-auto rounded-xl border border-cyann bg-[#061321] p-4 shadow-[0_16px_45px_rgba(0,0,0,0.22)] custom-scrollbar sm:p-5 md:sticky md:top-[76px]">
+                <div className="mb-5 flex items-center justify-between gap-3 border-b border-cyann pb-4">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-cyann bg-cyan-400/10 text-cyan-300">
+                      <i className={`fa-solid ${activeView === 'tournaments' ? 'fa-trophy' : activeView === 'leaderboard' ? 'fa-ranking-star' : 'fa-tower-broadcast'}`}></i>
+                    </span>
+                    <div className="min-w-0">
+                      <h2 className="font-orbitron text-xs font-black uppercase tracking-widest text-white">
+                        {editingId ? 'Edit' : 'Create'} {activeView === 'tournaments' ? 'Tournament' : activeView === 'leaderboard' ? 'Ranking' : 'Stream'}
+                      </h2>
+                      <p className="mt-1 text-[10px] text-slate-400">
+                        {editingId ? 'Update the selected record.' : 'Enter details to create a new record.'}
+                      </p>
+                    </div>
+                  </div>
                   {editingId && (
-                    <button onClick={resetForms} className="text-pink font-bold text-[9px] md:text-[10px] uppercase hover:underline tracking-widest flex-shrink-0">ABORT EDIT</button>
+                    <button onClick={resetForms} className="shrink-0 rounded-md border border-slate-700 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:border-rose-800 hover:text-rose-300">Cancel</button>
                   )}
                 </div>
 
                 {activeView === 'tournaments' && (
-                  <form onSubmit={handleSaveTournament} className="space-y-4 md:space-y-6">
+                  <form
+                    onSubmit={handleSaveTournament}
+                    className="space-y-3 [&_input]:!px-2 [&_input]:!py-1.5 [&_input]:!text-[11px] [&_select]:!px-2 [&_select]:!py-1.5 [&_select]:!text-[11px] [&_textarea]:!px-2 [&_textarea]:!py-1.5 [&_textarea]:!text-[11px]"
+                  >
                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                       <div className="space-y-1">
                         <label className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest">Sector Game</label>
@@ -1350,12 +1636,12 @@ const AdminPanel = ({
                       </div>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-5 space-y-4">
-                      <h4 className="text-sm font-orbitron font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                    <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                      <h4 className="flex items-center gap-2 font-orbitron text-xs font-bold uppercase tracking-widest text-white">
                         <i className="fa-solid fa-lock-open text-primary"></i> Registration Configuration
                       </h4>
 
-                      <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 p-2.5">
                         <div>
                           <div className="text-white font-bold text-xs md:text-sm uppercase tracking-widest">Login Required</div>
                           <div className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-widest mt-0.5">Users must authenticate before registration</div>
@@ -1363,9 +1649,9 @@ const AdminPanel = ({
                         <button
                           type="button"
                           onClick={() => setTourneyForm({ ...tourneyForm, login_required: !tourneyForm.login_required })}
-                          className={`w-14 h-8 rounded-full transition-all relative flex-shrink-0 ${tourneyForm.login_required ? 'bg-primary shadow-[0_0_10px_rgba(0,212,255,0.5)]' : 'bg-gray-800'}`}
+                          className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-all ${tourneyForm.login_required ? 'bg-primary shadow-[0_0_10px_rgba(0,212,255,0.5)]' : 'bg-gray-800'}`}
                         >
-                          <div className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${tourneyForm.login_required ? 'left-7' : 'left-1'}`}></div>
+                          <div className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${tourneyForm.login_required ? 'left-6' : 'left-1'}`}></div>
                         </button>
                       </div>
 
@@ -1375,29 +1661,29 @@ const AdminPanel = ({
                           <button
                             type="button"
                             onClick={() => setTourneyForm({ ...tourneyForm, payment_type: 'tgc_coin', login_required: true })}
-                            className={`p-3 md:p-4 rounded-xl border transition-all text-center ${
+                            className={`rounded-lg border p-2.5 text-center transition-all ${
                               tourneyForm.payment_type === 'tgc_coin'
                                 ? 'bg-primary/20 border-primary text-primary'
                                 : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
                             }`}
                           >
-                            <i className="fa-solid fa-coins text-lg md:text-2xl mb-2 block"></i>
-                            <div className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest">TGC Coin</div>
-                            <div className="text-[7px] md:text-[8px] text-gray-500 mt-1">Requires Login</div>
+                            <i className="fa-solid fa-coins mb-1.5 block text-base"></i>
+                            <div className="text-[9px] font-bold uppercase tracking-widest">TGC Coin</div>
+                            <div className="mt-1 text-[8px] text-gray-500">Requires Login</div>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => setTourneyForm({ ...tourneyForm, payment_type: 'direct_payment' })}
-                            className={`p-3 md:p-4 rounded-xl border transition-all text-center ${
+                            className={`rounded-lg border p-2.5 text-center transition-all ${
                               tourneyForm.payment_type === 'direct_payment'
                                 ? 'bg-pink/20 border-pink text-pink'
                                 : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
                             }`}
                           >
-                            <i className="fa-solid fa-credit-card text-lg md:text-2xl mb-2 block"></i>
-                            <div className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest">Direct Payment</div>
-                            <div className="text-[7px] md:text-[8px] text-gray-500 mt-1">Guest OK</div>
+                            <i className="fa-solid fa-credit-card mb-1.5 block text-base"></i>
+                            <div className="text-[9px] font-bold uppercase tracking-widest">Direct Payment</div>
+                            <div className="mt-1 text-[8px] text-gray-500">Guest OK</div>
                           </button>
                         </div>
                       </div>
@@ -1416,7 +1702,7 @@ const AdminPanel = ({
                         <span className="text-[7px] md:text-[8px] text-gray-500 uppercase tracking-widest">Fixed list only</span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 md:gap-3">
+                      <div className="grid grid-cols-2 gap-2">
                         {REGISTRATION_FIELD_DEFS.map(({ key, label }) => {
                           const enabled = Boolean(tourneyForm.registration_fields?.[key] ?? DEFAULT_REGISTRATION_FIELDS[key]);
                           return (
@@ -1424,13 +1710,13 @@ const AdminPanel = ({
                               key={key}
                               type="button"
                               onClick={() => updateRegistrationFieldRequirement(key, !enabled)}
-                              className={`w-full min-h-[55px] flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-all ${
+                              className={`flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-all ${
                                 enabled
                                   ? 'bg-primary/10 border-primary/40 text-white'
                                   : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
                               }`}
                             >
-                              <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest leading-tight flex-1 break-words">{label}</span>
+                              <span className="flex-1 break-words text-[9px] font-bold uppercase leading-tight tracking-wider">{label}</span>
                               <span className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-all ${enabled ? 'bg-primary border-primary' : 'bg-gray-800 border-gray-700'}`}>
                                 <span className={`h-4 w-4 rounded-full bg-white transition-all ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                               </span>
@@ -1500,14 +1786,17 @@ const AdminPanel = ({
                       />
                     </div>
 
-                    <button type="submit" className="w-full py-4 md:py-5 bg-primary text-dark font-orbitron font-black text-xs md:text-sm uppercase tracking-[0.3em] cyber-button shadow-[0_0_20px_rgba(0,212,255,0.2)]">
+                    <button type="submit" className="w-full rounded bg-primary py-2 text-[10px] font-black uppercase tracking-[0.12em] text-dark cyber-button shadow-[0_0_20px_rgba(0,212,255,0.2)]">
                       {editingId ? 'COMMIT UPDATES' : 'DEPLOY SECTOR'}
                     </button>
                   </form>
                 )}
 
                 {activeView === 'leaderboard' && (
-                  <form onSubmit={handleSaveLeaderboard} className="space-y-4 md:space-y-6">
+                  <form
+                    onSubmit={handleSaveLeaderboard}
+                    className="space-y-3 [&_input]:!px-2 [&_input]:!py-1.5 [&_input]:!text-[11px] [&_select]:!px-2 [&_select]:!py-1.5 [&_select]:!text-[11px]"
+                  >
                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                       <div className="space-y-1">
                         <label className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest">Target Game</label>
@@ -1592,14 +1881,17 @@ const AdminPanel = ({
                       </div>
                     </div>
 
-                    <button type="submit" className="w-full py-4 md:py-5 bg-primary text-dark font-orbitron font-black text-xs md:text-sm uppercase tracking-[0.3em] cyber-button">
+                    <button type="submit" className="w-full rounded bg-primary py-2 text-[10px] font-black uppercase tracking-[0.14em] text-dark cyber-button">
                       {editingId ? 'UPDATE RANKING' : 'INITIALIZE RANKING'}
                     </button>
                   </form>
                 )}
 
                 {activeView === 'streams' && (
-                  <form onSubmit={handleSaveStream} className="space-y-4 md:space-y-6">
+                  <form
+                    onSubmit={handleSaveStream}
+                    className="space-y-3 [&_input]:!px-2 [&_input]:!py-1.5 [&_input]:!text-[11px]"
+                  >
                     <div className="space-y-1">
                       <label className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest">Feed Title</label>
                       <input
@@ -1622,21 +1914,21 @@ const AdminPanel = ({
                         onChange={e => setStreamForm({ ...streamForm, youtubeid: e.target.value })}
                       />
                     </div>
-                    <div className="flex items-center gap-4 p-3 md:p-4 glass rounded-xl border border-white/5">
+                    <div className="flex items-center gap-3 rounded-lg border border-white/5 p-2.5 glass">
                       <div className="flex-grow">
-                        <div className="text-white font-bold text-xs uppercase tracking-widest">Deployment Status</div>
-                        <div className="text-[8px] md:text-[9px] text-gray-500 uppercase font-black tracking-widest">{streamForm.islive ? 'Online Broadcast' : 'Archived Feed'}</div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-white">Deployment Status</div>
+                        <div className="text-[8px] font-black uppercase tracking-widest text-gray-500">{streamForm.islive ? 'Online Broadcast' : 'Archived Feed'}</div>
                       </div>
                       <button
                         type="button"
                         onClick={() => setStreamForm({ ...streamForm, islive: !streamForm.islive })}
-                        className={`w-14 h-8 rounded-full transition-all relative flex-shrink-0 ${streamForm.islive ? 'bg-tertiary shadow-[0_0_10px_#00ff80]' : 'bg-gray-800'}`}
+                        className={`w-10 h-6 rounded-full transition-all relative flex-shrink-0 ${streamForm.islive ? 'bg-cyan' : 'bg-gray-800'}`}
                       >
-                        <div className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${streamForm.islive ? 'left-7' : 'left-1'}`}></div>
+                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${streamForm.islive ? 'left-5' : 'left-1'}`}></div>
                       </button>
                     </div>
 
-                    <button type="submit" className="w-full py-4 md:py-5 bg-primary text-dark font-orbitron font-black text-xs md:text-sm uppercase tracking-[0.3em] cyber-button">
+                    <button type="submit" className="w-full rounded bg-primary py-2 text-[10px] font-black uppercase tracking-[0.14em] text-dark cyber-button">
                       {editingId ? 'UPDATE BROADCAST' : 'ESTABLISH FEED'}
                     </button>
                   </form>
@@ -1649,71 +1941,71 @@ const AdminPanel = ({
 
       {/* Registration Edit Panel */}
       {viewingReg && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-2 overflow-y-auto">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center overflow-y-auto p-3 sm:p-5">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setViewingReg(null)}></div>
-          <div className="relative w-full max-w-4xl bg-bg-card rounded-2xl border border-white/10 shadow-2xl animate-fade-in my-8">
+          <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-white/10 bg-bg-card shadow-2xl animate-fade-in sm:max-h-[calc(100dvh-2.5rem)]">
 
             {/* Header */}
-            <div className="flex justify-between items-center p-6 border-b border-white/10">
-              <h3 className="text-xl font-orbitron font-black text-white uppercase tracking-widest">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
+              <h3 className="min-w-0 font-orbitron text-sm font-black uppercase tracking-widest text-white sm:text-base">
                 Edit Registration: <span className="text-primary">{viewingReg.team_name || viewingReg.playername || 'Unknown'}</span>
               </h3>
-              <button onClick={() => setViewingReg(null)} className="text-gray-400 hover:text-white transition-colors">
-                <i className="fa-solid fa-times text-xl"></i>
+              <button type="button" aria-label="Close registration editor" onClick={() => setViewingReg(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <i className="fa-solid fa-times"></i>
               </button>
             </div>
 
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 overflow-y-auto p-4 custom-scrollbar md:grid-cols-2 md:gap-6 sm:p-5">
 
               {/* Left Column: Editable Fields */}
-              <div className="space-y-4">
-                <h4 className="text-primary font-orbitron font-bold border-b border-white/10 pb-2 mb-4">
+              <div className="space-y-3">
+                <h4 className="mb-3 border-b border-white/10 pb-2 font-orbitron text-xs font-bold text-primary">
                   <i className="fa-solid fa-pen-to-square mr-2"></i>Registration Details
                 </h4>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Team / Squad Name</label>
-                    <input type="text" value={editRegForm.team_name || ''} onChange={(e) => setEditRegForm({...editRegForm, team_name: e.target.value})} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary" />
+                    <label className="mb-1 block text-[10px] font-bold text-gray-400">Team / Squad Name</label>
+                    <input type="text" value={editRegForm.team_name || ''} onChange={(e) => setEditRegForm({...editRegForm, team_name: e.target.value})} className="w-full rounded border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Squad Tag</label>
-                    <input type="text" value={editRegForm.team_tag || ''} onChange={(e) => setEditRegForm({...editRegForm, team_tag: e.target.value})} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary" />
+                    <label className="mb-1 block text-[10px] font-bold text-gray-400">Squad Tag</label>
+                    <input type="text" value={editRegForm.team_tag || ''} onChange={(e) => setEditRegForm({...editRegForm, team_tag: e.target.value})} className="w-full rounded border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Manager Name</label>
-                    <input type="text" value={editRegForm.manager_name || ''} onChange={(e) => setEditRegForm({...editRegForm, manager_name: e.target.value})} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary" />
+                    <label className="mb-1 block text-[10px] font-bold text-gray-400">Manager Name</label>
+                    <input type="text" value={editRegForm.manager_name || ''} onChange={(e) => setEditRegForm({...editRegForm, manager_name: e.target.value})} className="w-full rounded border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Manager Contact</label>
-                    <input type="text" value={editRegForm.manager_contact || ''} onChange={(e) => setEditRegForm({...editRegForm, manager_contact: e.target.value})} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary" />
+                    <label className="mb-1 block text-[10px] font-bold text-gray-400">Manager Contact</label>
+                    <input type="text" value={editRegForm.manager_contact || ''} onChange={(e) => setEditRegForm({...editRegForm, manager_contact: e.target.value})} className="w-full rounded border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-400 mb-2">Registrar Email</label>
-                  <input type="email" value={editRegForm.registrar_email || ''} onChange={(e) => setEditRegForm({...editRegForm, registrar_email: e.target.value})} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary" />
+                  <label className="mb-1 block text-[10px] font-bold text-gray-400">Registrar Email</label>
+                  <input type="email" value={editRegForm.registrar_email || ''} onChange={(e) => setEditRegForm({...editRegForm, registrar_email: e.target.value})} className="w-full rounded border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary" />
                 </div>
 
-                <h4 className="text-primary font-orbitron font-bold border-b border-white/10 pb-2 mt-8 mb-4">
+                <h4 className="mb-3 mt-5 border-b border-white/10 pb-2 font-orbitron text-xs font-bold text-primary">
                   <i className="fa-solid fa-sliders mr-2"></i>Status Controls
                 </h4>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Registration Status</label>
-                    <select value={editRegForm.registration_status || 'pending'} onChange={(e) => setEditRegForm({...editRegForm, registration_status: e.target.value})} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary">
+                    <label className="mb-1 block text-[10px] font-bold text-gray-400">Registration Status</label>
+                    <select value={editRegForm.registration_status || 'pending'} onChange={(e) => setEditRegForm({...editRegForm, registration_status: e.target.value})} className="w-full rounded border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary">
                       <option className='bg-black' value="pending">Pending</option>
                       <option className='bg-black' value="approved">Approved</option>
                       <option className='bg-black' value="rejected">Rejected</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Payment Status</label>
-                    <select value={editRegForm.payment_status || 'pending'} onChange={(e) => setEditRegForm({...editRegForm, payment_status: e.target.value})} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary">
+                    <label className="mb-1 block text-[10px] font-bold text-gray-400">Payment Status</label>
+                    <select value={editRegForm.payment_status || 'pending'} onChange={(e) => setEditRegForm({...editRegForm, payment_status: e.target.value})} className="w-full rounded border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary">
                       <option className='bg-black' value="pending">Pending</option>
                       <option className='bg-black' value="completed">Completed</option>
                       <option className='bg-black' value="failed">Failed</option>
@@ -1724,8 +2016,8 @@ const AdminPanel = ({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-400 mb-2">Admin Notes</label>
-                  <textarea value={editRegForm.notes || ''} onChange={(e) => setEditRegForm({...editRegForm, notes: e.target.value})} rows={3} placeholder="Internal notes about this registration..." className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary resize-none" />
+                  <label className="mb-1 block text-[10px] font-bold text-gray-400">Admin Notes</label>
+                  <textarea value={editRegForm.notes || ''} onChange={(e) => setEditRegForm({...editRegForm, notes: e.target.value})} rows={3} placeholder="Internal notes about this registration..." className="w-full resize-none rounded border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-primary" />
                 </div>
 
                 {errorBox && (
@@ -1735,25 +2027,25 @@ const AdminPanel = ({
                 )}
 
                 {/* Read-only Info */}
-                <div className="p-4 bg-white/2 border border-white/5 rounded-xl space-y-2 mt-4">
-                  <div className="flex justify-between text-sm"><span className="text-gray-500 font-bold">Arena</span><span className="text-white font-bold">{viewingReg.tournamenttitle || 'N/A'}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-gray-500 font-bold">Enrolled</span><span className="text-gray-300">{new Date(viewingReg.registrationdate || viewingReg.created_at).toLocaleString()}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-gray-500 font-bold">SMS</span><span className={`font-bold ${isSmsSent(viewingReg) ? 'text-[#25D366]' : 'text-yellow-400'}`}>{isSmsSent(viewingReg) ? 'SENT' : 'PENDING'}</span></div>
+                <div className="mt-3 space-y-1.5 rounded-lg border border-white/5 bg-white/2 p-3">
+                  <div className="flex justify-between gap-3 text-xs"><span className="font-bold text-gray-500">Arena</span><span className="text-right font-bold text-white">{viewingReg.tournamenttitle || 'N/A'}</span></div>
+                  <div className="flex justify-between gap-3 text-xs"><span className="font-bold text-gray-500">Enrolled</span><span className="text-right text-gray-300">{new Date(viewingReg.registrationdate || viewingReg.created_at).toLocaleString()}</span></div>
+                  <div className="flex justify-between gap-3 text-xs"><span className="font-bold text-gray-500">SMS</span><span className={`font-bold ${isSmsSent(viewingReg) ? 'text-[#25D366]' : 'text-yellow-400'}`}>{isSmsSent(viewingReg) ? 'SENT' : 'PENDING'}</span></div>
                 </div>
               </div>
 
               {/* Right Column: Roster & Actions */}
-              <div className="space-y-4">
-                <h4 className="text-primary font-orbitron font-bold border-b border-white/10 pb-2 mb-4">
+              <div className="space-y-3">
+                <h4 className="mb-3 border-b border-white/10 pb-2 font-orbitron text-xs font-bold text-primary">
                   <i className="fa-solid fa-users mr-2"></i>Player Roster
                 </h4>
 
                 {viewingReg.team_logo && (
-                  <div className="flex items-center gap-4 p-3 bg-white/2 border border-white/5 rounded-xl mb-4">
-                    <img src={viewingReg.team_logo} alt="Logo" className="w-14 h-14 rounded-lg object-cover border border-primary/30" />
+                  <div className="mb-3 flex items-center gap-3 rounded-lg border border-white/5 bg-white/2 p-2.5">
+                    <img src={viewingReg.team_logo} alt="Logo" className="h-10 w-10 rounded-lg border border-primary/30 object-cover" />
                     <div>
-                      <div className="text-white font-bold">{viewingReg.team_name}</div>
-                      <div className="text-gray-500 text-xs font-mono">{viewingReg.team_tag}</div>
+                      <div className="text-xs font-bold text-white">{viewingReg.team_name}</div>
+                      <div className="font-mono text-[10px] text-gray-500">{viewingReg.team_tag}</div>
                     </div>
                   </div>
                 )}
@@ -1761,12 +2053,12 @@ const AdminPanel = ({
                 {loadingPlayers ? (
                   <div className="text-center text-gray-500 py-8"><i className="fa-solid fa-spinner fa-spin mr-2"></i>Loading roster...</div>
                 ) : teamPlayers.length > 0 ? (
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="max-h-[260px] space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
                     {teamPlayers.map((player, idx) => (
-                      <div key={player.id} className="flex justify-between items-center p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors">
+                      <div key={player.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 p-2.5 transition-colors hover:bg-white/10">
                         <div className="min-w-0">
-                          <div className="text-white font-bold text-sm">{idx + 1}. {player.player_name}</div>
-                          <div className="text-gray-500 text-xs font-mono mt-0.5">UID: {player.player_uid}</div>
+                          <div className="text-xs font-bold text-white">{idx + 1}. {player.player_name}</div>
+                          <div className="mt-0.5 font-mono text-[10px] text-gray-500">UID: {player.player_uid}</div>
                         </div>
                         {player.player_citizenship_photo && (
                           <a href={player.player_citizenship_photo} target="_blank" rel="noreferrer" className="px-3 py-1.5 bg-primary/20 text-primary border border-primary/30 rounded text-[9px] font-orbitron font-bold uppercase hover:bg-primary hover:text-dark transition-all flex-shrink-0">
@@ -1784,25 +2076,25 @@ const AdminPanel = ({
                 )}
 
                 {/* WhatsApp */}
-                <h4 className="text-primary font-orbitron font-bold border-b border-white/10 pb-2 mt-6 mb-4">
+                <h4 className="mb-3 mt-5 border-b border-white/10 pb-2 font-orbitron text-xs font-bold text-primary">
                   <i className="fa-solid fa-paper-plane mr-2"></i>Communication
                 </h4>
                 <button
                   onClick={() => sendRegistrationWhatsApp(viewingReg)}
-                  className={`w-full py-3 text-white font-orbitron font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 rounded-lg ${whatsAppSentMap[getRegistrationMessageKey(viewingReg)] ? 'bg-[#1daa50]' : 'bg-[#25D366] hover:brightness-110'}`}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[10px] font-black uppercase tracking-widest text-white transition-all ${whatsAppSentMap[getRegistrationMessageKey(viewingReg)] ? 'bg-[#1daa50]' : 'bg-[#25D366] hover:brightness-110'}`}
                 >
-                  <i className={`${whatsAppSentMap[getRegistrationMessageKey(viewingReg)] ? 'fa-solid fa-circle-check' : 'fa-brands fa-whatsapp'} text-lg`}></i>
+                  <i className={`${whatsAppSentMap[getRegistrationMessageKey(viewingReg)] ? 'fa-solid fa-circle-check' : 'fa-brands fa-whatsapp'}`}></i>
                   {whatsAppSentMap[getRegistrationMessageKey(viewingReg)] ? 'WHATSAPP SENT' : 'SEND WHATSAPP'}
                 </button>
               </div>
             </div>
 
             {/* Footer Actions */}
-            <div className="flex justify-end gap-3 p-6 border-t border-white/10">
-              <button onClick={() => setViewingReg(null)} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-lg font-orbitron font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all">
+            <div className="flex shrink-0 justify-end gap-2 border-t border-white/10 p-3 sm:px-5">
+              <button onClick={() => setViewingReg(null)} className="rounded-lg bg-white/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-white/10">
                 Cancel
               </button>
-              <button onClick={saveRegistrationChanges} disabled={savingReg} className="flex-1 px-4 py-3 bg-primary text-dark rounded-lg font-orbitron font-bold text-xs uppercase tracking-widest hover:bg-primary/80 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+              <button onClick={saveRegistrationChanges} disabled={savingReg} className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-dark transition-all hover:bg-primary/80 disabled:opacity-50">
                 {savingReg ? <><i className="fa-solid fa-spinner fa-spin"></i> Saving...</> : <><i className="fa-solid fa-floppy-disk"></i> Save Changes</>}
               </button>
             </div>

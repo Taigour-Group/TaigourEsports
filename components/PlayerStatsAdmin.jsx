@@ -318,7 +318,21 @@ const PlayerStatsAdmin = ({ registrations }) => {
                             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-700/70 bg-cyan-400/10 font-orbitron text-[10px] font-bold text-cyan-300">{initials}</span>
                           )}
                           <div className="min-w-0">
-                            <div className="truncate text-xs font-bold text-slate-100">{name}</div>
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              <span className="truncate text-xs font-bold text-slate-100">{name}</span>
+                              {player.profiles?.verified === true && (
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  className="h-3.5 w-3.5 shrink-0 text-cyan"
+                                  fill="currentColor"
+                                  role="img"
+                                  aria-label="Verified account"
+                                  title="Verified account"
+                                >
+                                  <path d="M8.004 1.183a1.5 1.5 0 0 1 2.049-.55L12 1.759 13.947.634a1.5 1.5 0 0 1 2.05.549L17.045 3H19.5A1.5 1.5 0 0 1 21 4.5v2.453l1.817 1.05a1.5 1.5 0 0 1 .55 2.049L22.241 12l1.124 1.947a1.5 1.5 0 0 1-.55 2.05L21 17.044V19.5a1.5 1.5 0 0 1-1.5 1.5h-2.454l-1.05 1.817a1.5 1.5 0 0 1-2.048.549L12 22.241l-1.948 1.125a1.5 1.5 0 0 1-2.049-.549L6.955 21H4.5A1.5 1.5 0 0 1 3 19.5v-2.455l-1.817-1.049a1.5 1.5 0 0 1-.549-2.049L1.758 12 .634 10.053a1.5 1.5 0 0 1 .549-2.05L3 6.954V4.5A1.5 1.5 0 0 1 4.5 3h2.454l1.05-1.817zm9.703 9.024a1 1 0 0 0-1.414-1.414l-5.44 5.44a.5.5 0 0 1-.707 0l-2.439-2.44a1 1 0 0 0-1.414 1.414l2.44 2.44a2.5 2.5 0 0 0 3.535 0l5.44-5.44z" />
+                                </svg>
+                              )}
+                            </div>
                             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-slate-500">
                               <span>ID: {playerId}</span>
                               <span>UID: {(player.user_id || '').slice(0, 8)}</span>
@@ -386,202 +400,185 @@ const PlayerStatsAdmin = ({ registrations }) => {
 
       {/* Edit Modal */}
       {editingPlayer && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[2000]">
-          <div className="relative w-full h-[90vh] max-w-4xl p-4 bg-bg-card rounded-2xl border border-white/10 shadow-2xl animate-fade-in my-8 overflow-y-auto custom-scrollbar">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-orbitron font-black text-white">
-                Edit Player: {tempProfile.full_name || 'Unknown'}
-              </h3>
-              <button onClick={() => setEditingPlayer(null)} className="text-gray-400 hover:text-white">
-                <i className="fa-solid fa-times text-xl"></i>
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center overflow-y-auto bg-black/80 p-3 backdrop-blur-sm sm:p-5">
+          <button
+            type="button"
+            aria-label="Close player editor"
+            onClick={() => setEditingPlayer(null)}
+            className="absolute inset-0 h-full w-full cursor-default"
+          />
+          <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-cyan-900/70 bg-[#061321] shadow-2xl animate-fade-in sm:max-h-[calc(100dvh-2.5rem)]">
+            <header className="flex shrink-0 items-center justify-between gap-4 border-b border-cyan-950 bg-[#081827] px-4 py-3 sm:px-6">
+              <div className="flex min-w-0 items-center gap-3">
+                {editingPlayer.profiles?.avatar_url ? (
+                  <img
+                    src={editingPlayer.profiles.avatar_url}
+                    alt={`${tempProfile.full_name || 'Player'} profile`}
+                    className="h-11 w-11 shrink-0 rounded-xl border border-cyan-800 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-800 bg-cyan-400/10 font-orbitron text-sm font-black text-cyan-300">
+                    {(tempProfile.full_name || 'P').trim().charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-400">Player Administration</p>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h3 className="truncate font-orbitron text-sm font-black text-white sm:text-base">
+                      {tempProfile.full_name || 'Unknown Player'}
+                    </h3>
+                    {editingPlayer.profiles?.verified === true && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4 shrink-0 text-cyan"
+                        fill="currentColor"
+                        role="img"
+                        aria-label="Verified account"
+                        title="Verified account"
+                      >
+                        <path d="M8.004 1.183a1.5 1.5 0 0 1 2.049-.55L12 1.759 13.947.634a1.5 1.5 0 0 1 2.05.549L17.045 3H19.5A1.5 1.5 0 0 1 21 4.5v2.453l1.817 1.05a1.5 1.5 0 0 1 .55 2.049L22.241 12l1.124 1.947a1.5 1.5 0 0 1-.55 2.05L21 17.044V19.5a1.5 1.5 0 0 1-1.5 1.5h-2.454l-1.05 1.817a1.5 1.5 0 0 1-2.048.549L12 22.241l-1.948 1.125a1.5 1.5 0 0 1-2.049-.549L6.955 21H4.5A1.5 1.5 0 0 1 3 19.5v-2.455l-1.817-1.049a1.5 1.5 0 0 1-.549-2.049L1.758 12 .634 10.053a1.5 1.5 0 0 1 .549-2.05L3 6.954V4.5A1.5 1.5 0 0 1 4.5 3h2.454l1.05-1.817zm9.703 9.024a1 1 0 0 0-1.414-1.414l-5.44 5.44a.5.5 0 0 1-.707 0l-2.439-2.44a1 1 0 0 0-1.414 1.414l2.44 2.44a2.5 2.5 0 0 0 3.535 0l5.44-5.44z" />
+                      </svg>
+                    )}
+                  </div>
+                  <p className="truncate font-mono text-[9px] text-slate-500">
+                    ID: {editingPlayer.profiles?.player_id || editingPlayer.user_id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close player editor"
+                onClick={() => setEditingPlayer(null)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-800 text-slate-400 transition-colors hover:border-slate-600 hover:text-white"
+              >
+                <i className="fa-solid fa-xmark"></i>
               </button>
-            </div>
+            </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Left Column: Financial & Membership */}
-              <div className="space-y-4">
-                <h4 className="text-primary font-orbitron font-bold border-b border-white/10 pb-2 mb-4">Financial & Status</h4>
-                {/* Balance */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-400 mb-2">Balance (◈)</label>
-                  <input
-                    type="number"
-                    value={tempBalance}
-                    onChange={(e) => setTempBalance(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                  />
-                  <label className="block text-sm font-bold text-gray-400 mb-2">Description</label>
-                  <input
-                    type="text"
-                    value={tempDescription}
-                    onChange={(e) => setTempDescription(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                  />
-                </div>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 custom-scrollbar sm:p-5">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <section className="space-y-3 rounded-xl border border-slate-800 bg-[#091a2b] p-3.5 sm:p-4">
+                  <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
+                    <i className="fa-solid fa-id-card text-xs text-cyan-300"></i>
+                    <h4 className="font-orbitron text-[10px] font-black uppercase tracking-widest text-white">Player Profile</h4>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Full Name / Gamertag</label>
+                    <input type="text" value={tempProfile.full_name} onChange={(e) => setTempProfile({...tempProfile, full_name: e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Age</label>
+                      <input type="number" value={tempProfile.age} onChange={(e) => setTempProfile({...tempProfile, age: e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Phone / Discord</label>
+                      <input type="text" value={tempProfile.contact_info} onChange={(e) => setTempProfile({...tempProfile, contact_info: e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Game UID</label>
+                      <input type="text" value={tempProfile.game_uid} onChange={(e) => setTempProfile({...tempProfile, game_uid: e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Promo Code</label>
+                      <input type="text" value={tempProfile.promo_code} onChange={(e) => setTempProfile({...tempProfile, promo_code: e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
+                    </div>
+                  </div>
+                </section>
 
+                <section className="space-y-3 rounded-xl border border-slate-800 bg-[#091a2b] p-3.5 sm:p-4">
+                  <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
+                    <i className="fa-solid fa-wallet text-xs text-emerald-300"></i>
+                    <h4 className="font-orbitron text-[10px] font-black uppercase tracking-widest text-white">Wallet & Membership</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Balance (◈)</label>
+                      <input type="number" value={tempBalance} onChange={(e) => setTempBalance(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Membership Tier</label>
+                      <select value={tempMembership} onChange={(e) => setTempMembership(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500">
+                        {Object.entries(catalogMemberships).map(([key, value]) => (
+                          <option className="bg-black" key={key} value={key}>{value.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Adjustment Description</label>
+                    <input type="text" value={tempDescription} onChange={(e) => setTempDescription(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" placeholder="Reason for balance change" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Membership Duration Extension (Days)</label>
+                    <input type="number" value={tempDuration} onChange={(e) => setTempDuration(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
+                  </div>
+                </section>
 
-                {/* Membership Tier */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-400 mb-2">Membership Tier</label>
-                  <select
-                    value={tempMembership}
-                    onChange={(e) => setTempMembership(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                  >
-                    {Object.entries(catalogMemberships).map(([key, value]) => (
-                      <option className='bg-black' key={key} value={key}>
-                        {value.name}
-                      </option>
+                <section className="space-y-3 rounded-xl border border-slate-800 bg-[#091a2b] p-3.5 sm:p-4">
+                  <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
+                    <i className="fa-solid fa-chart-simple text-xs text-amber-300"></i>
+                    <h4 className="font-orbitron text-[10px] font-black uppercase tracking-widest text-white">Competitive Stats</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Total Kills</label>
+                      <input type="number" value={tempProfile.total_kills} onChange={(e) => setTempProfile({...tempProfile, total_kills: e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Combat Score</label>
+                      <input type="number" value={tempProfile.combat_score} onChange={(e) => setTempProfile({...tempProfile, combat_score: e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">Current Rank</label>
+                    <select value={tempProfile.rank} onChange={(e) => setTempProfile({...tempProfile, rank: e.target.value})} className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-2 text-xs text-white outline-none transition-colors focus:border-cyan-500">
+                      {['Unranked', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Crown', 'Ace', 'Conqueror'].map((rank) => (
+                        <option className="bg-black" key={rank} value={rank}>{rank}</option>
+                      ))}
+                    </select>
+                  </div>
+                </section>
+
+                <section className="space-y-3 rounded-xl border border-slate-800 bg-[#091a2b] p-3.5 sm:p-4">
+                  <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <i className="fa-solid fa-medal text-xs text-cyan-300"></i>
+                      <h4 className="font-orbitron text-[10px] font-black uppercase tracking-widest text-white">Achievements</h4>
+                    </div>
+                    <span className="text-[9px] text-slate-500">{tempProfile.achievements.length} selected</span>
+                  </div>
+                  <div className="grid max-h-36 grid-cols-1 gap-1.5 overflow-y-auto pr-1 custom-scrollbar sm:grid-cols-2">
+                    {[
+                      { id: 'FIRST_BLOOD', name: 'First Blood (10 Kills)' },
+                      { id: 'ASSASSIN', name: 'Assassin (50 Kills)' },
+                      { id: 'VETERAN', name: 'Veteran (100 Kills)' },
+                      { id: 'TERMINATOR', name: 'Terminator (500 Kills)' },
+                      { id: 'GLADIATOR', name: 'Gladiator (1k Combat)' },
+                      { id: 'WARLORD', name: 'Warlord (5k Combat)' },
+                      { id: 'ELITE_RANK', name: 'Elite Rank (Diamond+)' },
+                    ].map(ach => (
+                      <label key={ach.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/40 px-2.5 py-2 text-[10px] text-slate-300 transition-colors hover:border-slate-700 hover:bg-white/5">
+                        <input type="checkbox" checked={tempProfile.achievements.includes(ach.id)} onChange={() => handleAchievementToggle(ach.id)} className="accent-primary" />
+                        <span>{ach.name}</span>
+                      </label>
                     ))}
-                  </select>
-                </div>
-
-                {/* Duration */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-400 mb-2">Membership Duration Extension (Days)</label>
-                  <input
-                    type="number"
-                    value={tempDuration}
-                    onChange={(e) => setTempDuration(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                  />
-                </div>
-                
-                <h4 className="text-primary font-orbitron font-bold border-b border-white/10 pb-2 mt-8 mb-4">Game Stats</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Total Kills</label>
-                    <input
-                      type="number"
-                      value={tempProfile.total_kills}
-                      onChange={(e) => setTempProfile({...tempProfile, total_kills: e.target.value})}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                    />
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Combat Score</label>
-                    <input
-                      type="number"
-                      value={tempProfile.combat_score}
-                      onChange={(e) => setTempProfile({...tempProfile, combat_score: e.target.value})}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-400 mb-2">Current Rank</label>
-                  <select
-                    value={tempProfile.rank}
-                    onChange={(e) => setTempProfile({...tempProfile, rank: e.target.value})}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                  >
-                    <option className='bg-black' value="Unranked">Unranked</option>
-                    <option className='bg-black' value="Bronze">Bronze</option>
-                    <option className='bg-black' value="Silver">Silver</option>
-                    <option className='bg-black' value="Gold">Gold</option>
-                    <option className='bg-black' value="Platinum">Platinum</option>
-                    <option className='bg-black' value="Diamond">Diamond</option>
-                    <option className='bg-black' value="Crown">Crown</option>
-                    <option className='bg-black' value="Ace">Ace</option>
-                    <option className='bg-black' value="Conqueror">Conqueror</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Right Column: Profile & Achievements */}
-              <div className="space-y-4">
-                <h4 className="text-primary font-orbitron font-bold border-b border-white/10 pb-2 mb-4">Profile Details</h4>
-                <div>
-                  <label className="block text-sm font-bold text-gray-400 mb-2">Full Name / Gamertag</label>
-                  <input
-                    type="text"
-                    value={tempProfile.full_name}
-                    onChange={(e) => setTempProfile({...tempProfile, full_name: e.target.value})}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Age</label>
-                    <input
-                      type="number"
-                      value={tempProfile.age}
-                      onChange={(e) => setTempProfile({...tempProfile, age: e.target.value})}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Phone / Discord</label>
-                    <input
-                      type="text"
-                      value={tempProfile.contact_info}
-                      onChange={(e) => setTempProfile({...tempProfile, contact_info: e.target.value})}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Game UID</label>
-                    <input
-                      type="text"
-                      value={tempProfile.game_uid}
-                      onChange={(e) => setTempProfile({...tempProfile, game_uid: e.target.value})}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Promo Code</label>
-                    <input
-                      type="text"
-                      value={tempProfile.promo_code}
-                      onChange={(e) => setTempProfile({...tempProfile, promo_code: e.target.value})}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                </div>
-
-                <h4 className="text-primary font-orbitron font-bold border-b border-white/10 pb-2 mt-8 mb-4">Achievements</h4>
-                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                  {[
-                    { id: 'FIRST_BLOOD', name: 'First Blood (10 Kills)' },
-                    { id: 'ASSASSIN', name: 'Assassin (50 Kills)' },
-                    { id: 'VETERAN', name: 'Veteran (100 Kills)' },
-                    { id: 'TERMINATOR', name: 'Terminator (500 Kills)' },
-                    { id: 'GLADIATOR', name: 'Gladiator (1k Combat)' },
-                    { id: 'WARLORD', name: 'Warlord (5k Combat)' },
-                    { id: 'ELITE_RANK', name: 'Elite Rank (Diamond+)' },
-                  ].map(ach => (
-                    <label key={ach.id} className="flex items-center gap-2 text-sm text-gray-300 bg-white/5 p-2 rounded border border-white/5 hover:bg-white/10 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={tempProfile.achievements.includes(ach.id)}
-                        onChange={() => handleAchievementToggle(ach.id)}
-                        className="accent-primary"
-                      />
-                      <span>{ach.name}</span>
-                    </label>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 italic mt-2">* Achievements automatically unlock based on stats when you save.</p>
+                  <p className="text-[9px] leading-relaxed text-slate-500">Achievements automatically unlock based on stats when you save.</p>
+                </section>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-white/10">
-                <button
-                  onClick={() => setEditingPlayer(null)}
-                  className="flex-1 px-4 py-2 bg-white/5 text-white rounded font-bold hover:bg-white/10"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={savePlayerChanges}
-                  className="flex-1 px-4 py-2 bg-primary text-dark rounded font-bold hover:bg-primary/80"
-                >
-                  Save Changes
-                </button>
-              </div>
+            <footer className="flex shrink-0 justify-end gap-2 border-t border-cyan-950 bg-[#081827] p-3 sm:px-5">
+              <button type="button" onClick={() => setEditingPlayer(null)} className="rounded-lg border border-slate-700 bg-white/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-300 transition-colors hover:bg-white/10">
+                Cancel
+              </button>
+              <button type="button" onClick={savePlayerChanges} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-dark transition-colors hover:bg-primary/80">
+                <i className="fa-solid fa-floppy-disk"></i>Save Changes
+              </button>
+            </footer>
           </div>
         </div>
       )}

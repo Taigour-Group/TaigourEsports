@@ -190,16 +190,23 @@ export default function NotificationsAdmin() {
   };
 
   return (
-    <div className="space-y-6 md:space-y-8 animate-fade-in">
+    <div className="mx-auto max-w-4xl space-y-4 animate-fade-in">
       {/* Composer */}
-      <div className="bg-bg-card rounded-2xl border border-white/5 p-4 md:p-8 shadow-2xl">
-        <h3 className="text-lg md:text-xl font-orbitron font-black text-white uppercase tracking-widest mb-6">
-          Broadcast <span className="text-primary">Notification</span>
-        </h3>
+      <section className="overflow-hidden rounded-xl border border-cyann bg-[#061321]">
+        <div className="flex items-center gap-3 border-b border-cyann px-4 py-3 sm:px-5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-cyann bg-cyan-400/10 text-cyan-300">
+            <i className="fa-solid fa-bell"></i>
+          </span>
+          <div>
+            <h3 className="font-orbitron text-xs font-black uppercase tracking-widest text-white">
+            Broadcast <span className="text-cyan-300">Notification</span>
+            </h3>
+            <p className="mt-0.5 text-[11px] text-slate-400">Compose a message and choose who should receive it.</p>
+          </div>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Title">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-x-5 gap-y-3 p-4 sm:p-5 xl:grid-cols-2">
+          <Field label="Title">
               <input
                 className={inputClass}
                 maxLength={120}
@@ -218,13 +225,12 @@ export default function NotificationsAdmin() {
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-            </Field>
-          </div>
+          </Field>
 
-          <Field label="Message">
+          <Field label="Message" className="xl:col-span-2">
             <textarea
               className={inputClass}
-              rows={3}
+              rows={2}
               maxLength={500}
               value={form.body}
               onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
@@ -232,7 +238,7 @@ export default function NotificationsAdmin() {
             />
           </Field>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:col-span-2">
             <Field label="Image URL (optional)">
               <input
                 className={inputClass}
@@ -251,27 +257,31 @@ export default function NotificationsAdmin() {
             </Field>
           </div>
 
-          <Field label="Priority">
-            <div className="flex gap-2">
-              {['default', 'high'].map((p) => (
-                <button
-                  type="button"
-                  key={p}
-                  onClick={() => setForm((f) => ({ ...f, priority: p }))}
-                  className={`px-4 py-2 rounded-lg text-[10px] font-orbitron font-black uppercase tracking-widest border ${form.priority === p ? 'bg-primary text-dark border-primary' : 'bg-white/5 text-gray-500 border-white/5'}`}
-                >
-                  {p}
-                </button>
-              ))}
+          <div className="grid grid-cols-1 gap-3 lg:col-span-2 lg:grid-cols-3">
+            <div className="rounded-lg border border-cyann bg-[#091a2b] p-3">
+              <p className="mb-2 font-orbitron text-[9px] font-black uppercase tracking-widest text-slate-300">
+                Priority
+              </p>
+              <div className="flex gap-1.5">
+                {['default', 'high'].map((p) => (
+                  <button
+                    type="button"
+                    key={p}
+                    onClick={() => setForm((f) => ({ ...f, priority: p }))}
+                    className={`rounded-md border px-3 py-1.5 text-[9px] font-orbitron font-black uppercase tracking-widest transition-colors ${form.priority === p ? 'border-cyann bg-cyan text-[#031018]' : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:text-white'}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
-          </Field>
 
-          {/* Targeting */}
-          <div className="border-t border-white/5 pt-5">
-            <p className="text-[10px] font-orbitron font-black text-gray-500 uppercase tracking-widest mb-3">
+            {/* Targeting */}
+            <div className="rounded-lg border border-cyann bg-[#091a2b] p-3">
+            <p className="mb-2 font-orbitron text-[9px] font-black uppercase tracking-widest text-slate-300">
               Audience
             </p>
-            <div className="flex gap-2 mb-4">
+            <div className="mb-3 flex flex-wrap gap-1.5">
               {[
                 { id: 'all', label: 'Everyone' },
                 { id: 'segment', label: 'Segment' },
@@ -281,7 +291,7 @@ export default function NotificationsAdmin() {
                   type="button"
                   key={t.id}
                   onClick={() => { setForm((f) => ({ ...f, target_type: t.id })); setAudiencePreview(null); }}
-                  className={`px-4 py-2 rounded-lg text-[10px] font-orbitron font-black uppercase tracking-widest border ${form.target_type === t.id ? 'bg-primary text-dark border-primary' : 'bg-white/5 text-gray-500 border-white/5'}`}
+                  className={`rounded-md border px-2.5 py-1.5 text-[8px] font-orbitron font-black uppercase tracking-widest transition-colors ${form.target_type === t.id ? 'border-cyann bg-cyan text-[#031018]' : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:text-white'}`}
                 >
                   {t.label}
                 </button>
@@ -289,7 +299,7 @@ export default function NotificationsAdmin() {
             </div>
 
             {form.target_type === 'segment' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <Field label="Segment type">
                   <select
                     className={inputClass}
@@ -324,12 +334,12 @@ export default function NotificationsAdmin() {
               </Field>
             )}
 
-            <div className="flex items-center gap-3 mt-3">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={handlePreviewAudience}
                 disabled={previewLoading}
-                className="px-4 py-2 rounded-lg text-[10px] font-orbitron font-black uppercase tracking-widest border border-white/10 bg-white/5 text-gray-300 hover:border-primary/50"
+                className="rounded-md border border-slate-700 bg-slate-900/70 px-2.5 py-1.5 text-[8px] font-orbitron font-black uppercase tracking-widest text-slate-300 transition-colors hover:border-cyan-700"
               >
                 {previewLoading ? 'Checking...' : 'Preview reach'}
               </button>
@@ -337,14 +347,14 @@ export default function NotificationsAdmin() {
                 <span className="text-primary text-xs font-bold">~{audiencePreview.toLocaleString()} users</span>
               )}
             </div>
-          </div>
+            </div>
 
-          {/* Scheduling */}
-          <div className="border-t border-white/5 pt-5">
-            <p className="text-[10px] font-orbitron font-black text-gray-500 uppercase tracking-widest mb-3">
+            {/* Scheduling */}
+            <div className="rounded-lg border border-cyann bg-[#091a2b] p-3">
+            <p className="mb-2 font-orbitron text-[9px] font-black uppercase tracking-widest text-slate-300">
               Delivery
             </p>
-            <div className="flex gap-2 mb-4">
+            <div className="mb-3 flex flex-wrap gap-1.5">
               {[
                 { id: 'now', label: 'Send now' },
                 { id: 'schedule', label: 'Schedule' }
@@ -353,15 +363,15 @@ export default function NotificationsAdmin() {
                   type="button"
                   key={m.id}
                   onClick={() => setForm((f) => ({ ...f, send_mode: m.id }))}
-                  className={`px-4 py-2 rounded-lg text-[10px] font-orbitron font-black uppercase tracking-widest border ${form.send_mode === m.id ? 'bg-primary text-dark border-primary' : 'bg-white/5 text-gray-500 border-white/5'}`}
+                  className={`rounded-md border px-2.5 py-1.5 text-[8px] font-orbitron font-black uppercase tracking-widest transition-colors ${form.send_mode === m.id ? 'border-cyann bg-cyan text-[#031018]' : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:text-white'}`}
                 >
                   {m.label}
                 </button>
               ))}
-            </div>
+              </div>
 
             {form.send_mode === 'schedule' && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <Field label="Send at">
                   <input
                     type="datetime-local"
@@ -394,11 +404,12 @@ export default function NotificationsAdmin() {
                 )}
               </div>
             )}
+            </div>
           </div>
 
           {message && (
             <div
-              className="px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-widest"
+              className="rounded-md px-3 py-2 text-[11px] font-bold uppercase tracking-widest xl:col-span-2"
               style={{
                 backgroundColor: message.type === 'error' ? 'rgba(255,0,128,0.1)' : 'rgba(34,197,94,0.1)',
                 color: message.type === 'error' ? '#ff0080' : '#22c55e'
@@ -411,19 +422,22 @@ export default function NotificationsAdmin() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full md:w-auto px-8 py-3 rounded-lg bg-primary text-dark font-orbitron font-black text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(0,212,255,0.4)] disabled:opacity-50"
+            className="w-full rounded-md border border-cyann bg-cyan px-4 py-2 font-orbitron text-[9px] font-black uppercase tracking-widest text-[#031018] transition-colors hover:bg-cyan disabled:cursor-wait disabled:opacity-50 sm:w-auto"
           >
             {submitting ? 'Sending...' : form.send_mode === 'schedule' ? 'Schedule notification' : 'Send now'}
           </button>
         </form>
-      </div>
+      </section>
 
       {/* History */}
-      <div className="bg-bg-card rounded-2xl border border-white/5 p-4 md:p-8 shadow-2xl">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <h3 className="text-lg md:text-xl font-orbitron font-black text-white uppercase tracking-widest">
+      <section className="overflow-hidden rounded-xl border border-cyann bg-[#061321]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyann px-4 py-3 sm:px-5">
+          <div>
+            <h3 className="font-orbitron text-xs font-black uppercase tracking-widest text-white">
             History
-          </h3>
+            </h3>
+            <p className="mt-0.5 text-[11px] text-slate-400">Track delivery status and review notification reach.</p>
+          </div>
           <select
             className={`${inputClass} w-auto`}
             value={statusFilter}
@@ -437,17 +451,17 @@ export default function NotificationsAdmin() {
         </div>
 
         {historyLoading ? (
-          <p className="text-gray-500 text-xs uppercase tracking-widest">Loading...</p>
+          <p className="p-5 text-xs uppercase tracking-widest text-slate-400">Loading...</p>
         ) : history.length === 0 ? (
-          <p className="text-gray-500 text-xs uppercase tracking-widest">No notifications sent yet.</p>
+        <p className="p-8 text-center text-xs uppercase tracking-widest text-slate-400">No notifications sent yet.</p>
         ) : (
-          <div className="space-y-3">
+        <div className="max-h-[360px] space-y-2 overflow-y-auto p-3 sm:p-4 custom-scrollbar">
             {history.map((item) => (
-              <div key={item.id} className="border border-white/5 rounded-xl overflow-hidden">
+            <div key={item.id} className="overflow-hidden rounded-lg border border-cyann bg-[#091a2b]">
                 <button
                   type="button"
                   onClick={() => toggleExpand(item)}
-                  className="w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-white/[0.02]"
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-cyan-400/[0.035]"
                 >
                   <div className="min-w-0">
                     <p className="text-white text-sm font-bold truncate">{item.title}</p>
@@ -481,7 +495,7 @@ export default function NotificationsAdmin() {
                   </div>
                 </button>
                 {expandedId === item.id && (
-                  <div className="px-4 pb-4 pt-1 border-t border-white/5 text-xs text-gray-400 space-y-1">
+                  <div className="space-y-1 border-t border-cyann px-4 pb-4 pt-3 text-xs text-slate-400">
                     <p>Category: <span className="text-gray-300">{item.category}</span> · Target: <span className="text-gray-300">{item.target_type}</span></p>
                     {item.scheduled_at && <p>Scheduled: <span className="text-gray-300">{new Date(item.scheduled_at).toLocaleString()}</span></p>}
                     {item.sent_at && <p>Sent: <span className="text-gray-300">{new Date(item.sent_at).toLocaleString()}</span></p>}
@@ -499,15 +513,15 @@ export default function NotificationsAdmin() {
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
 
-function Field({ label, children }) {
+function Field({ label, children, className = '' }) {
   return (
-    <label className="block">
-      <span className="block text-[9px] font-orbitron font-black text-gray-500 uppercase tracking-widest mb-2">
+    <label className={`block ${className}`}>
+      <span className="mb-1 block text-[8px] font-orbitron font-black uppercase tracking-widest text-slate-400">
         {label}
       </span>
       {children}
@@ -516,4 +530,4 @@ function Field({ label, children }) {
 }
 
 const inputClass =
-  'w-full px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white text-sm font-rajdhani font-bold outline-none focus:border-primary/50 transition-colors';
+  'w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-xs font-rajdhani font-bold text-white outline-none transition-colors focus:border-cyan-500';
