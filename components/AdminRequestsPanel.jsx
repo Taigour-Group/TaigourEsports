@@ -110,7 +110,10 @@ const AdminRequestsPanel = () => {
     const billNo = `REQ-${request.id}`;
 
     const lines = [];
-    if (request.type === REQUEST_TYPES.RECHARGE) {
+    if (request.type === 'verification') {
+      lines.push({ label: 'Account verification fee', value: `NPR ${Number(request.amount) || 50}` });
+      lines.push({ label: 'Payment review', value: request.status === REQUEST_STATUS.APPROVED ? 'Approved' : 'Awaiting admin review' });
+    } else if (request.type === REQUEST_TYPES.RECHARGE) {
       lines.push({ label: 'Package amount', value: `◈ ${request.package_amount || 0}` });
       lines.push({ label: 'Bonus', value: `◈ ${request.bonus_amount || 0}` });
       lines.push({ label: 'Total credited', value: `◈ ${request.amount || 0}` });
@@ -177,7 +180,7 @@ const AdminRequestsPanel = () => {
       <div class="meta">
         <div>Customer: <b>${request.user_name || 'Player'}</b></div>
         <div>Email: <b>${request.user_email || '-'}</b></div>
-        <div>User ID: <b>${request.players_id || '-'}</b></div>
+        <div>Player ID: <b>${request.players_id || '-'}</b></div>
         <div>Type: <b>${(request.type || '').toString().toUpperCase()}</b></div>
         <div>WhatsApp: <b>${request.whatsapp_number || '-'}</b></div>
         <div>Pay method: <b>${(request.payment_method || '-').toString().toUpperCase()}</b></div>
@@ -367,9 +370,15 @@ const AdminRequestsPanel = () => {
                   {/* Request Details */}
                   <div className="bg-white/5 border border-white/10 rounded p-3 space-y-2">
                     {request.type === 'verification' ? (
-                      <p className="text-sm text-gray-300">
-                        Review the player’s profile and verify their identity through your established process before approving.
-                      </p>
+                      <>
+                        <div className="flex justify-between text-sm font-bold">
+                          <span className="text-gray-400">Verification fee:</span>
+                          <span className="text-amber-300">NPR {Number(request.amount) || 50}</span>
+                        </div>
+                        <p className="text-sm text-gray-300">
+                          Review the player’s profile and confirm the fee through your established process before approving verification.
+                        </p>
+                      </>
                     ) : request.type === REQUEST_TYPES.RECHARGE ? (
                       <>
                         <div className="flex justify-between text-sm">
@@ -404,8 +413,7 @@ const AdminRequestsPanel = () => {
                   </div>
 
                   {/* Payment Details */}
-                  {request.type !== 'verification' && (
-                    <div className="bg-white/5 border border-white/10 rounded p-3 space-y-2">
+                  <div className="bg-white/5 border border-white/10 rounded p-3 space-y-2">
                       <div className="text-gray-500 uppercase tracking-widest text-xs mb-1">Payment Details</div>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
@@ -425,8 +433,7 @@ const AdminRequestsPanel = () => {
                           <div className="font-bold text-white break-words">{request.payment_account_owner || '-'}</div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                  </div>
 
                   {/* Description */}
                   <div>

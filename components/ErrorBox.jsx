@@ -44,37 +44,55 @@ const ErrorBox = ({ message, onClose, type = 'error' }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-bg-dark/95 backdrop-blur-md" onClick={onClose}></div>
-      <div 
-        className="relative w-full max-w-sm glass p-6 md:p-8 rounded-xl animate-fade-in"
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4" role="presentation">
+      <button
+        type="button"
+        aria-label="Dismiss notification"
+        className="fixed inset-0 cursor-default bg-[#02070d]/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="alert-box-title"
+        aria-describedby="alert-box-message"
+        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#081521] p-5 shadow-2xl shadow-black/60 animate-fade-in sm:p-7"
         style={{
           border: `1px solid ${borderColor}`,
-          boxShadow: `0 0 100px ${shadowColor}`
+          boxShadow: `0 24px 90px ${shadowColor}, 0 0 45px ${shadowColor}`
         }}
       >
-        <div className="flex items-start gap-4 mb-6">
+        <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: iconColor }} />
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close notification"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+        <div className="mb-6 flex items-start gap-4 pr-8">
           <div 
-            className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
             style={{
               backgroundColor: iconBgColor,
               border: `1px solid ${iconBorderColor}`,
               boxShadow: `0 0 20px ${shadowColor}`
             }}
           >
-            <i className={`${icon} text-lg`} style={{ color: iconColor }}></i>
+            <i className={`${icon} text-lg`} style={{ color: iconColor }} aria-hidden="true"></i>
           </div>
           <div className="flex-1">
-            <h3 className="text-lg md:text-xl font-orbitron font-black text-white uppercase tracking-widest">{title}</h3>
-            <p className="text-gray-400 font-rajdhani text-sm md:text-base mt-2 leading-relaxed">{message}</p>
+            <h3 id="alert-box-title" className="text-lg font-orbitron font-black uppercase tracking-widest text-white sm:text-xl">{title}</h3>
+            <p id="alert-box-message" className="mt-2 text-sm leading-relaxed text-gray-300 sm:text-base">{message}</p>
           </div>
         </div>
         <button
           onClick={onClose}
           style={buttonStyle}
-          className="w-full py-3 md:py-4 font-orbitron font-black text-xs md:text-sm uppercase tracking-widest transition-all rounded hover:opacity-80"
+          className="w-full rounded-lg py-3 font-orbitron text-xs font-black uppercase tracking-widest transition-all hover:brightness-110 sm:py-3.5 sm:text-sm"
         >
-          ACKNOWLEDGE
+          Got it
         </button>
       </div>
     </div>

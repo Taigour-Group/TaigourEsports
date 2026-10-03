@@ -95,7 +95,7 @@ class AuthService {
     return { data };
   }
 
-  async verificationRequest(method = 'GET') {
+  async verificationRequest(method = 'GET', requestData = null) {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
@@ -103,7 +103,11 @@ class AuthService {
 
       const response = await fetch('/api/verification-request', {
         method,
-        headers: { Authorization: `Bearer ${session.access_token}` }
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          ...(requestData ? { 'Content-Type': 'application/json' } : {})
+        },
+        ...(requestData ? { body: JSON.stringify(requestData) } : {})
       });
       const responseText = await response.text();
       let result;
@@ -127,8 +131,8 @@ class AuthService {
     return this.verificationRequest();
   }
 
-  async submitVerificationRequest() {
-    return this.verificationRequest('POST');
+  async submitVerificationRequest(requestData) {
+    return this.verificationRequest('POST', requestData);
   }
 
   async createProfile(userId, profileData) {

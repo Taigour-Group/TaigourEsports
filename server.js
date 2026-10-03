@@ -662,6 +662,27 @@ app.get('/api/verification-request', requireUser, async (req, res) => {
 
 app.post('/api/verification-request', requireUser, verificationRequestLimiter, async (req, res) => {
   try {
+    const {
+      full_name,
+      players_id,
+      whatsapp_number,
+      payment_method,
+      payment_account_number,
+      payment_account_owner
+    } = req.body || {};
+    const method = (payment_method || '').toString().trim().toLowerCase();
+    const allowedMethods = ['esewa', 'khalti', 'bank'];
+    if (
+      !full_name?.toString().trim() ||
+      !players_id?.toString().trim() ||
+      !whatsapp_number?.toString().trim() ||
+      !payment_account_number?.toString().trim() ||
+      !payment_account_owner?.toString().trim() ||
+      !allowedMethods.includes(method)
+    ) {
+      return res.status(400).json({ error: 'Complete all player, contact, and payment details before submitting.' });
+    }
+
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('full_name, player_id, verified')
@@ -685,11 +706,15 @@ app.post('/api/verification-request', requireUser, verificationRequestLimiter, a
     const { error } = await supabase.from('purchase_requests').insert([{
       user_id: req.userId,
       user_email: req.user?.email || null,
-      user_name: profile.full_name || req.user?.user_metadata?.full_name || 'Player',
+      user_name: full_name.toString().trim(),
       type: 'verification',
-      amount: 0,
-      players_id: profile.player_id || null,
-      description: 'Player requested account/ID verification.',
+      amount: 50,
+      players_id: players_id.toString().trim(),
+      whatsapp_number: whatsapp_number.toString().trim(),
+      payment_method: method,
+      payment_account_number: payment_account_number.toString().trim(),
+      payment_account_owner: payment_account_owner.toString().trim(),
+      description: 'Account verification request. Verification fee: NPR 50.',
       status: 'pending',
       created_at: new Date().toISOString()
     }]);

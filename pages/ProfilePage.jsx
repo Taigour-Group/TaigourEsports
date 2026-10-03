@@ -23,6 +23,16 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
   const [updating, setUpdating] = useState(false);
   const [verificationPending, setVerificationPending] = useState(false);
   const [verificationSubmitting, setVerificationSubmitting] = useState(false);
+  const [verificationFormOpen, setVerificationFormOpen] = useState(false);
+  const [verificationStep, setVerificationStep] = useState(0);
+  const [verificationForm, setVerificationForm] = useState({
+    full_name: '',
+    players_id: '',
+    whatsapp_number: '',
+    payment_method: 'esewa',
+    payment_account_number: '',
+    payment_account_owner: ''
+  });
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -44,6 +54,15 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
   }, [profile]);
 
   useEffect(() => {
+    setVerificationForm((current) => ({
+      ...current,
+      full_name: current.full_name || profile?.full_name || user?.user_metadata?.full_name || '',
+      players_id: current.players_id || profile?.player_id || '',
+      whatsapp_number: current.whatsapp_number || profile?.contact_info || ''
+    }));
+  }, [profile, user]);
+
+  useEffect(() => {
     if (!user || profile?.verified) return;
     let cancelled = false;
     authService.getVerificationRequest().then(({ data, error }) => {
@@ -59,16 +78,48 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
     };
   }, [user, profile?.verified]);
 
+  const updateVerificationField = (field, value) => {
+    setVerificationForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const validateVerificationStep = (step) => {
+    const fields = step === 0
+      ? ['full_name', 'players_id', 'whatsapp_number']
+      : ['payment_account_number', 'payment_account_owner'];
+    const missingField = fields.find((field) => !verificationForm[field].trim());
+    if (missingField) {
+      const messages = {
+        full_name: 'Enter your full name or gamertag to continue.',
+        players_id: 'Enter the Player ID to print on your bill.',
+        whatsapp_number: 'Enter a WhatsApp number so admins can contact you.',
+        payment_account_number: 'Enter the account number used for payment.',
+        payment_account_owner: 'Enter the payment account holder name.'
+      };
+      setErrorMsg(messages[missingField]);
+      return false;
+    }
+    return true;
+  };
+
+  const moveVerificationStep = (nextStep) => {
+    if (nextStep > verificationStep && !validateVerificationStep(verificationStep)) return;
+    setErrorMsg('');
+    setVerificationStep(nextStep);
+  };
+
   const handleVerificationRequest = async () => {
+    if (!validateVerificationStep(1)) return;
     setVerificationSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
-    const { data, error } = await authService.submitVerificationRequest();
+    const { data, error } = await authService.submitVerificationRequest(verificationForm);
     if (error) {
       setErrorMsg(error.message || 'Failed to submit verification request.');
     } else {
       setVerificationPending(Boolean(data?.pending));
-      setSuccessMsg('Verification request submitted. An admin will review your account.');
+      setVerificationFormOpen(false);
+      setVerificationStep(0);
+      setSuccessMsg('Verification request submitted. Your NPR 50 fee and billing details are recorded for admin review.');
     }
     setVerificationSubmitting(false);
   };
@@ -515,17 +566,146 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                           : 'Request an admin review to verify your account.'}
                     </p>
                   </div>
-                  {!profile?.verified && (
+                  {!profile?.verified && !verificationFormOpen && (
                     <button
                       type="button"
-                      onClick={handleVerificationRequest}
+                      onClick={() => {
+                        setVerificationStep(0);
+                        setVerificationFormOpen(true);
+                      }}
                       disabled={verificationPending || verificationSubmitting}
                       className="shrink-0 rounded-md border border-cyan-300/40 bg-cyan-400/10 px-4 py-2 font-orbitron text-[10px] font-black uppercase tracking-wider text-cyan transition-colors hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {verificationSubmitting ? 'Submitting...' : verificationPending ? 'Request Pending' : 'Verify Your ID / Account'}
+                      {verificationPending ? 'Request Pending' : 'Start Verification'}
                     </button>
                   )}
                 </div>
+
+                {verificationFormOpen && !verificationPending && (
+                  <section className="overflow-hidden rounded-xl border border-cyan-300/20 bg-[#071722]">
+                    <div className="border-b border-white/10 p-4 sm:p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h4 className="font-orbitron text-sm font-black uppercase tracking-widest text-white">Verification request</h4>
+                          <p className="mt-1 text-sm text-gray-400">Complete each step to prepare your NPR 50 verification bill.</p>
+                        </div>
+                        <div className="rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-right">
+                          <span className="block text-[9px] font-bold uppercase tracking-widest text-amber-200">Verification fee</span>
+                          <strong className="font-orbitron text-lg text-amber-100">Rs. 50/-</strong>
+                        </div>
+                      </div>
+                      <div className="mt-5 grid grid-cols-3 gap-2">
+                        {['Player details', 'Payment details', 'Review'].map((label, index) => (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => index < verificationStep && moveVerificationStep(index)}
+                            aria-current={index === verificationStep ? 'step' : undefined}
+                            className={`rounded-md border px-2 py-2 text-left text-[9px] font-orbitron font-bold uppercase tracking-wide sm:px-3 ${
+                              index === verificationStep
+                                ? 'border-cyan-300/60 bg-cyan-300/10 text-cyan-100'
+                                : index < verificationStep
+                                  ? 'border-green-300/30 bg-green-300/5 text-green-200'
+                                  : 'border-white/10 bg-black/10 text-gray-500'
+                            }`}
+                          >
+                            <span className="mr-1.5">{index < verificationStep ? '✓' : `0${index + 1}`}</span>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 p-4 sm:p-5">
+                      {verificationStep === 0 && (
+                        <>
+                          <p className="text-sm text-gray-400">These details appear on your bill and help admins match the payment to your player account.</p>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-gray-400">
+                              Full name / Gamertag
+                              <input required value={verificationForm.full_name} onChange={(event) => updateVerificationField('full_name', event.target.value)} className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2.5 text-sm normal-case tracking-normal text-white outline-none focus:border-cyan-300/60" />
+                            </label>
+                            <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-gray-400">
+                              Player ID
+                              <input required value={verificationForm.players_id} onChange={(event) => updateVerificationField('players_id', event.target.value)} className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2.5 font-mono text-sm normal-case tracking-normal text-white outline-none focus:border-cyan-300/60" />
+                            </label>
+                            <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-gray-400">
+                              WhatsApp number
+                              <input required type="tel" value={verificationForm.whatsapp_number} onChange={(event) => updateVerificationField('whatsapp_number', event.target.value)} className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2.5 text-sm normal-case tracking-normal text-white outline-none focus:border-cyan-300/60" />
+                            </label>
+                            <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-gray-400">
+                              Account email
+                              <input readOnly value={user?.email || ''} className="w-full cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-3 py-2.5 text-sm normal-case tracking-normal text-gray-400" />
+                            </label>
+                          </div>
+                        </>
+                      )}
+
+                      {verificationStep === 1 && (
+                        <>
+                          <p className="text-sm text-gray-400">Enter the payer details to include on the bill. Admins will review the NPR 50 payment before approving verification.</p>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-gray-400">
+                              Payment method
+                              <select value={verificationForm.payment_method} onChange={(event) => updateVerificationField('payment_method', event.target.value)} className="w-full rounded-md border border-white/10 bg-[#0b1b26] px-3 py-2.5 text-sm normal-case tracking-normal text-white outline-none focus:border-cyan-300/60">
+                                <option value="esewa">eSewa</option>
+                                <option value="khalti">Khalti</option>
+                                <option value="bank">Bank transfer</option>
+                              </select>
+                            </label>
+                            <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-gray-400">
+                              Payer account number
+                              <input required value={verificationForm.payment_account_number} onChange={(event) => updateVerificationField('payment_account_number', event.target.value)} className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2.5 text-sm normal-case tracking-normal text-white outline-none focus:border-cyan-300/60" />
+                            </label>
+                            <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-gray-400 sm:col-span-2">
+                              Payer account holder
+                              <input required value={verificationForm.payment_account_owner} onChange={(event) => updateVerificationField('payment_account_owner', event.target.value)} className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2.5 text-sm normal-case tracking-normal text-white outline-none focus:border-cyan-300/60" />
+                            </label>
+                          </div>
+                        </>
+                      )}
+
+                      {verificationStep === 2 && (
+                        <>
+                          <p className="text-sm text-gray-400">Check the bill information below before sending your verification request.</p>
+                          <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-4 text-sm sm:grid-cols-2">
+                            <div><span className="text-gray-500">Player</span><p className="font-bold text-white">{verificationForm.full_name}</p></div>
+                            <div><span className="text-gray-500">Email</span><p className="break-all font-bold text-white">{user?.email || '-'}</p></div>
+                            <div><span className="text-gray-500">Player ID</span><p className="font-mono font-bold text-white">{verificationForm.players_id}</p></div>
+                            <div><span className="text-gray-500">WhatsApp</span><p className="font-bold text-white">{verificationForm.whatsapp_number}</p></div>
+                            <div><span className="text-gray-500">Payment method</span><p className="font-bold capitalize text-white">{verificationForm.payment_method}</p></div>
+                            <div><span className="text-gray-500">Payer account</span><p className="font-bold text-white">{verificationForm.payment_account_number} · {verificationForm.payment_account_owner}</p></div>
+                          </div>
+                          <div className="flex items-center justify-between rounded-lg border border-amber-300/20 bg-amber-300/5 px-4 py-3">
+                            <span className="text-sm font-bold text-gray-200">Account verification</span>
+                            <strong className="font-orbitron text-lg text-amber-200">Rs. 50/-</strong>
+                          </div>
+                          <p className="text-xs leading-relaxed text-gray-500">Submitting sends your request and billing details to the admin team. Verification is granted only after the admin reviews your account and confirms the payment.</p>
+                        </>
+                      )}
+
+                      <div className="flex flex-wrap justify-between gap-2 border-t border-white/10 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => verificationStep === 0 ? setVerificationFormOpen(false) : moveVerificationStep(verificationStep - 1)}
+                          disabled={verificationSubmitting}
+                          className="rounded-md border border-white/15 px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-300 transition-colors hover:bg-white/5 disabled:opacity-50"
+                        >
+                          {verificationStep === 0 ? 'Cancel' : 'Back'}
+                        </button>
+                        {verificationStep < 2 ? (
+                          <button type="button" onClick={() => moveVerificationStep(verificationStep + 1)} className="rounded-md border border-cyan-300/40 bg-cyan-300/10 px-5 py-2 text-xs font-orbitron font-black uppercase tracking-wider text-cyan-100 transition-colors hover:bg-cyan-300/20">
+                            Continue <i className="fa-solid fa-arrow-right ml-2"></i>
+                          </button>
+                        ) : (
+                          <button type="button" onClick={handleVerificationRequest} disabled={verificationSubmitting} className="rounded-md border border-green-300/40 bg-green-400/10 px-5 py-2 text-xs font-orbitron font-black uppercase tracking-wider text-green-100 transition-colors hover:bg-green-400/20 disabled:cursor-wait disabled:opacity-50">
+                            {verificationSubmitting ? 'Submitting...' : 'Submit verification request'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                )}
 
                 <form onSubmit={handleUpdateProfile} className="space-y-5 font-rajdhani">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
