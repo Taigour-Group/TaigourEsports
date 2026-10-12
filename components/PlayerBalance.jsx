@@ -2,6 +2,7 @@
 import ErrorBox from './ErrorBox.jsx';
 import TgcCoin from './TgcCoin.jsx';
 import { balanceService } from '../services/balanceService';
+import { supabase } from '../services/supabaseClient';
 import { MEMBERSHIP_BENEFITS, MEMBERSHIP_TIERS, RECHARGE_PACKAGES, ADMIN_WHATSAPP, REQUEST_TYPES, REQUEST_STATUS } from '../constants/balanceConstants';
 import { useAuth } from '../context/AuthContext';
 
@@ -23,6 +24,8 @@ const PlayerBalance = () => {
   const [catalogRechargePackages, setCatalogRechargePackages] = useState(RECHARGE_PACKAGES);
   const [transferForm, setTransferForm] = useState({ to_player_id: '', amount: '' });
   const [transferLoading, setTransferLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponRedeeming, setCouponRedeeming] = useState(false);
   const [errorBox, setErrorBox] = useState(null);
   const [successBox, setSuccessBox] = useState(null);
   const [requestInfo, setRequestInfo] = useState({
@@ -240,6 +243,45 @@ const PlayerBalance = () => {
     }
   };
 
+  const redeemCoupon = async (event) => {
+    event.preventDefault();
+    if (!user || !couponCode.trim()) return;
+
+    setCouponRedeeming(true);
+    setErrorBox(null);
+    setSuccessBox(null);
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session?.access_token) throw new Error('Please sign in again to redeem a coupon.');
+
+      const response = await fetch('/api/coupons/redeem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ code: couponCode.trim() })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not redeem this coupon.');
+
+      const reward = result.data?.reward;
+      const rewardMessage = reward?.type === 'tgc'
+        ? `${Number(reward.amount).toLocaleString()} TGC has been added to your wallet.`
+        : `${reward?.membership_tier || 'Membership'} membership activated for ${reward?.duration_days} days.`;
+      setSuccessBox(`Coupon redeemed! ${rewardMessage}`);
+      setCouponCode('');
+      await fetchBalance(false, true);
+      if (activeTab === 'history') await fetchHistory(true);
+    } catch (error) {
+      console.error('Coupon redemption failed:', error);
+      setErrorBox(error.message || 'Could not redeem this coupon. Please try again.');
+    } finally {
+      setCouponRedeeming(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-4 md:p-8">
@@ -331,6 +373,7 @@ const PlayerBalance = () => {
             { key: 'membership', label: 'Membership', icon: 'fa-crown' },
             { key: 'stats', label: 'Stats', icon: 'fa-chart-pie' },
             { key: 'transfer', label: 'Transfer', icon: 'fa-paper-plane' },
+            { key: 'redeem', label: 'Redeem', icon: 'fa-ticket' },
             { key: 'history', label: 'History', icon: 'fa-clock-rotate-left' },
             { key: 'store', label: 'Store', icon: 'fa-store' },
           ].map((tab) => (
@@ -582,6 +625,40 @@ const PlayerBalance = () => {
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === 'redeem' && (
+            <form onSubmit={redeemCoupon} className="mx-auto max-w-xl space-y-4 rounded-xl border border-cyann bg-[#06111a] p-4 md:p-6">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyann bg-cyan-400/10 text-cyan-300">
+                  <i className="fa-solid fa-ticket" />
+                </span>
+                <div>
+                  <h3 className="font-space text-lg font-black uppercase tracking-wider text-white">Redeem a coupon</h3>
+                  <p className="mt-1 text-sm text-slate-400">Enter a coupon code to claim its TGC or membership reward.</p>
+                </div>
+              </div>
+              <label htmlFor="player-coupon-code" className="block text-xs font-bold uppercase tracking-widest text-slate-400">Coupon code</label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  id="player-coupon-code"
+                  autoComplete="off"
+                  maxLength={50}
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                  placeholder="ENTER YOUR CODE"
+                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/30 px-4 py-3 font-orbitron text-sm font-bold tracking-widest text-white outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-400"
+                />
+                <button
+                  type="submit"
+                  disabled={couponRedeeming || !couponCode.trim()}
+                  className="rounded-lg bg-cyan px-5 py-3 font-space text-xs font-black uppercase tracking-widest text-[#041018] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {couponRedeeming ? <><i className="fa-solid fa-spinner fa-spin mr-2" />Redeeming</> : 'Claim reward'}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">Coupons are one-time use and are bound to your player account.</p>
+            </form>
           )}
 
           {activeTab === 'store' && (

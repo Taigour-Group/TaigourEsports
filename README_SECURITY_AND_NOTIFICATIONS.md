@@ -125,3 +125,17 @@ step, not a new setup.
   Node process. Fine at your current scale; if you ever run multiple server
   instances, move it to a proper job queue (BullMQ) or Supabase pg_cron +
   Edge Function so scheduled sends aren't duplicated across instances.
+
+## 10. Coupon redemption
+
+Run `supabase/migrations/003_coupon_redemption.sql` in the Supabase SQL editor
+before enabling coupon redemption. Configure `SUPABASE_SERVICE_ROLE_KEY` in
+the backend environment with the project's service-role key; keep it server
+side only and do not use it as a Vite (`VITE_*`) variable or in the player
+app. Coupon tables and the atomic redemption RPC are restricted to the backend
+service role. The redeem endpoint separately verifies each player's Supabase
+session and applies per-IP rate limiting.
+
+The admin panel's Coupons view creates and pauses codes for TGC or active
+membership-tier rewards. A coupon can have a start time, expiry, and optional
+global redemption cap; each player can redeem a given coupon only once.

@@ -20,6 +20,7 @@ dist-ssr/
 .env.test.local
 .env.production.local
 *.sql
+!supabase/migrations/*.sql
 
 # Editor directories and files
 .vscode/*

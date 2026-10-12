@@ -37,6 +37,25 @@ const AdminPanel = ({
   const [membershipItems, setMembershipItems] = useState([]);
   const [rechargeItems, setRechargeItems] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
+  const [couponItems, setCouponItems] = useState([]);
+  const [couponMembershipTiers, setCouponMembershipTiers] = useState([]);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponSaving, setCouponSaving] = useState(false);
+  const [couponError, setCouponError] = useState('');
+  const [expandedCouponId, setExpandedCouponId] = useState(null);
+  const [couponRedemptionData, setCouponRedemptionData] = useState({});
+  const [couponRedemptionsLoading, setCouponRedemptionsLoading] = useState({});
+  const [couponForm, setCouponForm] = useState({
+    code: '',
+    description: '',
+    reward_type: 'tgc',
+    reward_amount: '100',
+    membership_tier: '',
+    duration_days: '30',
+    max_redemptions: '',
+    starts_at: '',
+    expires_at: ''
+  });
   const [membershipForm, setMembershipForm] = useState({
     slug: '',
     name: '',
@@ -93,6 +112,40 @@ const AdminPanel = ({
     if (activeView === 'catalog') {
       loadCatalogData();
     }
+  }, [activeView]);
+
+  const loadCouponsData = async () => {
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const [couponsResponse, tiersResponse] = await Promise.all([
+        adminFetch('/api/admin/coupons'),
+        adminFetch('/api/admin/catalog/membership-tiers')
+      ]);
+      const [couponsResult, tiersResult] = await Promise.all([
+        couponsResponse.json().catch(() => ({})),
+        tiersResponse.json().catch(() => ({}))
+      ]);
+      if (!couponsResponse.ok) throw new Error(couponsResult.error || 'Failed to load coupons');
+      if (!tiersResponse.ok) throw new Error(tiersResult.error || 'Failed to load membership tiers');
+
+      const tiers = (tiersResult.data || []).filter(tier => tier.is_active);
+      setCouponItems(couponsResult.data || []);
+      setCouponMembershipTiers(tiers);
+      setCouponForm(prev => ({
+        ...prev,
+        membership_tier: prev.membership_tier || tiers[0]?.slug || ''
+      }));
+    } catch (error) {
+      console.error('Failed to load coupons:', error);
+      setCouponError(error.message || 'Failed to load coupons.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeView === 'coupons') loadCouponsData();
   }, [activeView]);
 
   useEffect(() => {
@@ -532,6 +585,92 @@ const AdminPanel = ({
     }
   };
 
+  const handleCreateCoupon = async (event) => {
+    event.preventDefault();
+    setCouponSaving(true);
+    setCouponError('');
+    try {
+      const payload = {
+        ...couponForm,
+        code: couponForm.code.trim().toUpperCase(),
+        reward_amount: couponForm.reward_type === 'tgc' ? Number(couponForm.reward_amount) : null,
+        membership_tier: couponForm.reward_type === 'membership' ? couponForm.membership_tier : null,
+        duration_days: couponForm.reward_type === 'membership' ? Number(couponForm.duration_days) : null,
+        max_redemptions: couponForm.max_redemptions === '' ? null : Number(couponForm.max_redemptions),
+        starts_at: couponForm.starts_at ? new Date(couponForm.starts_at).toISOString() : null,
+        expires_at: couponForm.expires_at ? new Date(couponForm.expires_at).toISOString() : null
+      };
+      const response = await adminFetch('/api/admin/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Failed to create coupon');
+
+      setCouponForm({
+        code: '',
+        description: '',
+        reward_type: 'tgc',
+        reward_amount: '100',
+        membership_tier: couponMembershipTiers[0]?.slug || '',
+        duration_days: '30',
+        max_redemptions: '',
+        starts_at: '',
+        expires_at: ''
+      });
+      await loadCouponsData();
+    } catch (error) {
+      console.error('Failed to create coupon:', error);
+      setCouponError(error.message || 'Failed to create coupon.');
+    } finally {
+      setCouponSaving(false);
+    }
+  };
+
+  const toggleCouponStatus = async (coupon) => {
+    setCouponError('');
+    try {
+      const response = await adminFetch(`/api/admin/coupons/${coupon.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !coupon.is_active })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Failed to update coupon');
+      setCouponItems(items => items.map(item => item.id === coupon.id ? { ...item, ...result.data } : item));
+    } catch (error) {
+      console.error('Failed to update coupon:', error);
+      setCouponError(error.message || 'Failed to update coupon.');
+    }
+  };
+
+  const loadCouponRedemptions = async (couponId, append = false) => {
+    const currentData = couponRedemptionData[couponId];
+    const offset = append ? (currentData?.data?.length || 0) : 0;
+    setCouponRedemptionsLoading(current => ({ ...current, [couponId]: true }));
+    setCouponError('');
+
+    try {
+      const response = await adminFetch(`/api/admin/coupons/${couponId}/redemptions?limit=50&offset=${offset}`);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Failed to load redemption history');
+
+      setCouponRedemptionData(current => ({
+        ...current,
+        [couponId]: {
+          data: append ? [...(current[couponId]?.data || []), ...(result.data || [])] : (result.data || []),
+          total: result.total || 0
+        }
+      }));
+    } catch (error) {
+      console.error('Failed to load coupon redemptions:', error);
+      setCouponError(error.message || 'Failed to load redemption history.');
+    } finally {
+      setCouponRedemptionsLoading(current => ({ ...current, [couponId]: false }));
+    }
+  };
+
   const startCatalogEdit = (item, type) => {
     setCatalogMode(type);
     setEditingCatalogId(item.id);
@@ -742,6 +881,7 @@ const AdminPanel = ({
     { id: 'dashboard', label: 'Dash', icon: 'fa-chart-pie' },
     { id: 'players', label: 'Players', icon: 'fa-user-gear' },
     { id: 'catalog', label: 'Catalog', icon: 'fa-gem' },
+    { id: 'coupons', label: 'Coupons', icon: 'fa-ticket' },
     { id: 'tournaments', label: 'Arenas', icon: 'fa-crosshairs' },
     { id: 'leaderboard', label: 'Ranks', icon: 'fa-crown' }
   ];
@@ -1024,7 +1164,264 @@ const AdminPanel = ({
               </section>
             )}
 
-            {activeView !== 'dashboard' && activeView !== 'logs' && activeView !== 'players' && activeView !== 'catalog' && (
+            {activeView === 'coupons' && (
+              <section className="animate-fade-in mx-auto max-w-6xl space-y-4 overflow-hidden rounded-xl border border-cyann bg-[#061321] p-4 shadow-[0_16px_45px_rgba(0,0,0,0.22)] sm:p-5">
+                <div className="flex items-center gap-3 border-b border-cyann pb-4">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-cyann bg-cyan-400/10 text-cyan-300">
+                    <i className="fa-solid fa-ticket" />
+                  </span>
+                  <div>
+                    <h2 className="font-orbitron text-xs font-black uppercase tracking-widest text-white">Coupon rewards</h2>
+                    <p className="mt-1 text-[10px] text-slate-400">Create one-time coupon codes for TGC or membership rewards.</p>
+                  </div>
+                </div>
+
+                {couponError && <div role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{couponError}</div>}
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.2fr)]">
+                  <form onSubmit={handleCreateCoupon} className="space-y-3 rounded-lg border border-cyann bg-[#091a2b] p-4">
+                    <div className="font-orbitron text-[10px] font-black uppercase tracking-widest text-white">Create coupon</div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Code
+                      <input
+                        required
+                        minLength={3}
+                        maxLength={50}
+                        pattern="[A-Za-z0-9][A-Za-z0-9_-]{2,49}"
+                        value={couponForm.code}
+                        onChange={event => setCouponForm({ ...couponForm, code: event.target.value.toUpperCase() })}
+                        placeholder="e.g. TGO-WELCOME"
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold tracking-widest text-white outline-none focus:border-cyan-400"
+                      />
+                    </label>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Player-facing reward note (optional)
+                      <input
+                        maxLength={240}
+                        value={couponForm.description}
+                        onChange={event => setCouponForm({ ...couponForm, description: event.target.value })}
+                        placeholder="Welcome reward"
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                      />
+                    </label>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Reward type
+                      <select
+                        value={couponForm.reward_type}
+                        onChange={event => setCouponForm({ ...couponForm, reward_type: event.target.value })}
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-[#091321] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                      >
+                        <option value="tgc">TGC coins</option>
+                        <option value="membership">Membership</option>
+                      </select>
+                    </label>
+                    {couponForm.reward_type === 'tgc' ? (
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        TGC reward
+                        <input
+                          required
+                          min="1"
+                          step="1"
+                          type="number"
+                          value={couponForm.reward_amount}
+                          onChange={event => setCouponForm({ ...couponForm, reward_amount: event.target.value })}
+                          className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                        />
+                      </label>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Membership tier
+                          <select
+                            required
+                            value={couponForm.membership_tier}
+                            onChange={event => setCouponForm({ ...couponForm, membership_tier: event.target.value })}
+                            className="mt-1 w-full rounded-lg border border-white/10 bg-[#091321] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                          >
+                            {couponMembershipTiers.map(tier => <option key={tier.id} value={tier.slug}>{tier.name}</option>)}
+                          </select>
+                        </label>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Duration (days)
+                          <input
+                            required
+                            min="1"
+                            max="3650"
+                            step="1"
+                            type="number"
+                            value={couponForm.duration_days}
+                            onChange={event => setCouponForm({ ...couponForm, duration_days: event.target.value })}
+                            className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                          />
+                        </label>
+                        {couponMembershipTiers.length === 0 && <p className="text-xs text-amber-300 sm:col-span-2">Add an active membership tier in Catalog before creating a membership coupon.</p>}
+                      </div>
+                    )}
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Maximum redemptions (blank = unlimited)
+                      <input
+                        min="1"
+                        step="1"
+                        type="number"
+                        value={couponForm.max_redemptions}
+                        onChange={event => setCouponForm({ ...couponForm, max_redemptions: event.target.value })}
+                        placeholder="Unlimited"
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                      />
+                    </label>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Starts (optional)
+                        <input
+                          type="datetime-local"
+                          value={couponForm.starts_at}
+                          onChange={event => setCouponForm({ ...couponForm, starts_at: event.target.value })}
+                          className="mt-1 w-full rounded-lg border border-white/10 bg-[#091321] px-2 py-2 text-xs text-white"
+                        />
+                      </label>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Expires (optional)
+                        <input
+                          type="datetime-local"
+                          value={couponForm.expires_at}
+                          onChange={event => setCouponForm({ ...couponForm, expires_at: event.target.value })}
+                          className="mt-1 w-full rounded-lg border border-white/10 bg-[#091321] px-2 py-2 text-xs text-white"
+                        />
+                      </label>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={couponSaving || (couponForm.reward_type === 'membership' && couponMembershipTiers.length === 0)}
+                      className="w-full rounded-md bg-cyan px-4 py-2.5 font-orbitron text-[10px] font-black uppercase tracking-widest text-[#031018] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {couponSaving ? 'Creating...' : 'Create coupon'}
+                    </button>
+                  </form>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-orbitron text-[10px] font-black uppercase tracking-widest text-slate-300">Existing coupons</div>
+                      <button type="button" onClick={loadCouponsData} disabled={couponLoading} className="text-xs text-cyan-300 hover:text-white disabled:opacity-50">
+                        <i className={`fa-solid fa-rotate mr-1 ${couponLoading ? 'animate-spin' : ''}`} />Refresh
+                      </button>
+                    </div>
+                    {couponLoading ? (
+                      <div className="rounded-lg border border-white/5 bg-[#091a2b] p-4 text-sm text-slate-400">Loading coupons...</div>
+                    ) : couponItems.length === 0 ? (
+                      <div className="rounded-lg border border-white/5 bg-[#091a2b] p-4 text-sm text-slate-400">No coupons yet. Create one to start rewarding players.</div>
+                    ) : (
+                      <div className="max-h-[720px] space-y-2 overflow-y-auto pr-1">
+                        {couponItems.map(coupon => {
+                          const rewardText = coupon.reward_type === 'tgc'
+                            ? `${Number(coupon.reward_amount).toLocaleString()} TGC`
+                            : `${coupon.membership_tier} membership · ${coupon.duration_days} days`;
+                          const limitText = coupon.max_redemptions === null
+                            ? `${coupon.redemption_count} redeemed · unlimited`
+                            : `${coupon.redemption_count} / ${coupon.max_redemptions} redeemed`;
+                          return (
+                            <div key={coupon.id} className="rounded-lg border border-cyann bg-[#091a2b] p-3">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <code className="font-orbitron text-xs font-black tracking-widest text-cyan-200">{coupon.code}</code>
+                                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${coupon.is_active ? 'bg-emerald-400/10 text-emerald-300' : 'bg-slate-700/60 text-slate-400'}`}>
+                                      {coupon.is_active ? 'Active' : 'Paused'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-xs font-bold text-white">{rewardText}</div>
+                                  {coupon.description && <div className="mt-1 truncate text-[10px] text-slate-400">{coupon.description}</div>}
+                                  <div className="mt-1 text-[10px] text-slate-500">{limitText}{coupon.expires_at ? ` · Expires ${new Date(coupon.expires_at).toLocaleString()}` : ''}</div>
+                                </div>
+                                <div className="flex shrink-0 flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    aria-expanded={expandedCouponId === coupon.id}
+                                    onClick={() => {
+                                      if (expandedCouponId === coupon.id) {
+                                        setExpandedCouponId(null);
+                                      } else {
+                                        setExpandedCouponId(coupon.id);
+                                        loadCouponRedemptions(coupon.id);
+                                      }
+                                    }}
+                                    className="rounded-md border border-cyann px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-cyan-200 transition-colors hover:bg-cyan-400/10"
+                                  >
+                                    <i className="fa-solid fa-users mr-1.5" />View claims
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleCouponStatus(coupon)}
+                                    className={`rounded-md border px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${coupon.is_active ? 'border-rose-500/30 text-rose-300 hover:bg-rose-500/10' : 'border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10'}`}
+                                  >
+                                    {coupon.is_active ? 'Pause' : 'Activate'}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {expandedCouponId === coupon.id && (
+                                <div className="mt-3 border-t border-white/10 pt-3">
+                                  <div className="mb-2 flex items-center justify-between gap-2">
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                                      Claimed by {couponRedemptionData[coupon.id]?.total ?? coupon.redemption_count} player(s)
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => loadCouponRedemptions(coupon.id)}
+                                      disabled={couponRedemptionsLoading[coupon.id]}
+                                      className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 hover:text-white disabled:opacity-50"
+                                    >
+                                      <i className={`fa-solid fa-rotate mr-1 ${couponRedemptionsLoading[coupon.id] ? 'animate-spin' : ''}`} />Refresh
+                                    </button>
+                                  </div>
+                                  {couponRedemptionsLoading[coupon.id] && !couponRedemptionData[coupon.id] ? (
+                                    <div className="py-4 text-center text-xs text-slate-400"><i className="fa-solid fa-spinner fa-spin mr-2" />Loading claims...</div>
+                                  ) : couponRedemptionData[coupon.id]?.data?.length ? (
+                                    <div className="space-y-2">
+                                      {couponRedemptionData[coupon.id].data.map(redemption => (
+                                        <div key={redemption.id} className="flex flex-col gap-1 rounded-md border border-white/5 bg-black/20 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                                          <div className="min-w-0">
+                                            <div className="truncate text-xs font-bold text-white">
+                                              {redemption.full_name || redemption.username || 'Player'}
+                                            </div>
+                                            <div className="font-mono text-[10px] text-slate-500">
+                                              Player ID: {redemption.player_id || redemption.user_id}
+                                            </div>
+                                          </div>
+                                          <div className="shrink-0 text-left text-[10px] text-slate-400 sm:text-right">
+                                            <div>{redemption.reward?.type === 'tgc'
+                                              ? `${Number(redemption.reward.amount).toLocaleString()} TGC`
+                                              : `${redemption.reward?.membership_tier || 'Membership'} · ${redemption.reward?.duration_days} days`}</div>
+                                            <time dateTime={redemption.created_at}>{new Date(redemption.created_at).toLocaleString()}</time>
+                                          </div>
+                                        </div>
+                                      ))}
+                                      {couponRedemptionData[coupon.id].data.length < couponRedemptionData[coupon.id].total && (
+                                        <button
+                                          type="button"
+                                          onClick={() => loadCouponRedemptions(coupon.id, true)}
+                                          disabled={couponRedemptionsLoading[coupon.id]}
+                                          className="w-full rounded-md border border-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-300 hover:border-cyann hover:text-cyan-200 disabled:opacity-50"
+                                        >
+                                          {couponRedemptionsLoading[coupon.id] ? 'Loading...' : 'Load more claims'}
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="py-3 text-center text-xs text-slate-500">No players have claimed this coupon yet.</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {activeView !== 'dashboard' && activeView !== 'logs' && activeView !== 'players' && activeView !== 'catalog' && activeView !== 'coupons' && (
               <section className={`animate-fade-in mx-auto overflow-hidden rounded-xl border border-cyann bg-[#061321] shadow-[0_16px_45px_rgba(0,0,0,0.22)] ${activeView === 'registrations' ? 'max-w-4xl' : ''}`}>
                 {['tournaments', 'leaderboard', 'registrations'].includes(activeView) && (
                   <div className="flex flex-col gap-3 border-b border-cyann px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">

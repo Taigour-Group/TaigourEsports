@@ -28,6 +28,10 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const couponSupabase = supabaseServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, { auth: { persistSession: false } })
+  : null;
 const PLATFORM_WALLET_ID = process.env.PLATFORM_WALLET_ID || null;
 
 // --- Wallet helpers (wallet_id === profiles.player_id) ---
@@ -178,6 +182,14 @@ const verificationRequestLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many verification requests. Please try again later.' }
+});
+
+const couponRedeemLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many coupon attempts. Please try again later.' }
 });
 
 // Simple In-Memory Cache
@@ -340,6 +352,212 @@ app.get('/api/catalog', async (req, res) => {
   } catch (error) {
     console.error('Failed to load catalog:', error);
     return safeError(res, 500, 'Failed to load catalog');
+  }
+});
+
+app.get('/api/admin/coupons', requireAdminRole, async (_req, res) => {
+  if (!couponSupabase) return safeError(res, 503, 'Coupon service is not configured');
+
+  try {
+    const { data, error } = await couponSupabase
+      .from('coupons')
+      .select('id, code, description, reward_type, reward_amount, membership_tier, duration_days, max_redemptions, redemption_count, starts_at, expires_at, is_active, created_at')
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) throw error;
+    return res.json({ data: data || [] });
+  } catch (error) {
+    console.error('Failed to fetch coupons:', error);
+    return safeError(res, 500, 'Failed to fetch coupons');
+  }
+});
+
+app.get('/api/admin/coupons/:id/redemptions', requireAdminRole, async (req, res) => {
+  if (!couponSupabase) return safeError(res, 503, 'Coupon service is not configured');
+
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
+  const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+
+  try {
+    const { data: redemptions, count, error } = await couponSupabase
+      .from('coupon_redemptions')
+      .select('id, user_id, reward_snapshot, created_at', { count: 'exact' })
+      .eq('coupon_id', req.params.id)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+
+    const userIds = [...new Set((redemptions || []).map(redemption => redemption.user_id).filter(Boolean))];
+    const { data: profiles, error: profileError } = userIds.length
+      ? await couponSupabase
+        .from('profiles')
+        .select('id, player_id, full_name, username')
+        .in('id', userIds)
+      : { data: [], error: null };
+
+    if (profileError) throw profileError;
+    const profilesById = new Map((profiles || []).map(profile => [profile.id, profile]));
+
+    return res.json({
+      data: (redemptions || []).map(redemption => {
+        const profile = profilesById.get(redemption.user_id);
+        return {
+          id: redemption.id,
+          user_id: redemption.user_id,
+          player_id: profile?.player_id || null,
+          full_name: profile?.full_name || null,
+          username: profile?.username || null,
+          reward: redemption.reward_snapshot,
+          created_at: redemption.created_at
+        };
+      }),
+      total: count || 0,
+      limit,
+      offset
+    });
+  } catch (error) {
+    console.error('Failed to fetch coupon redemptions:', error);
+    return safeError(res, 500, 'Failed to fetch coupon redemptions');
+  }
+});
+
+app.post('/api/admin/coupons', requireAdminRole, async (req, res) => {
+  if (!couponSupabase) return safeError(res, 503, 'Coupon service is not configured');
+
+  try {
+    const code = String(req.body?.code || '').trim().toUpperCase();
+    const description = sanitizeText(req.body?.description || '').slice(0, 240);
+    const rewardType = req.body?.reward_type;
+    const maxRedemptions = req.body?.max_redemptions;
+    const startsAt = req.body?.starts_at || null;
+    const expiresAt = req.body?.expires_at || null;
+    const rewardAmount = Number(req.body?.reward_amount);
+    const durationDays = Number(req.body?.duration_days);
+    const membershipTier = String(req.body?.membership_tier || '').trim();
+
+    if (!/^[A-Z0-9][A-Z0-9_-]{2,49}$/.test(code)) {
+      return safeError(res, 400, 'Coupon code must be 3-50 letters, numbers, underscores, or hyphens.');
+    }
+    if (!['tgc', 'membership'].includes(rewardType)) {
+      return safeError(res, 400, 'Choose a valid reward type.');
+    }
+    if (maxRedemptions !== null && maxRedemptions !== undefined && maxRedemptions !== '') {
+      if (!Number.isSafeInteger(Number(maxRedemptions)) || Number(maxRedemptions) < 1) {
+        return safeError(res, 400, 'Maximum redemptions must be a positive whole number.');
+      }
+    }
+    for (const timestamp of [startsAt, expiresAt]) {
+      if (timestamp && Number.isNaN(Date.parse(timestamp))) {
+        return safeError(res, 400, 'Coupon dates must be valid.');
+      }
+    }
+    if (startsAt && expiresAt && Date.parse(expiresAt) <= Date.parse(startsAt)) {
+      return safeError(res, 400, 'The expiry date must be after the start date.');
+    }
+    if (rewardType === 'tgc' && (!Number.isSafeInteger(rewardAmount) || rewardAmount < 1)) {
+      return safeError(res, 400, 'TGC reward must be a positive whole number.');
+    }
+    if (rewardType === 'membership' && (!membershipTier || !Number.isSafeInteger(durationDays) || durationDays < 1 || durationDays > 3650)) {
+      return safeError(res, 400, 'Choose a membership tier and a duration from 1 to 3650 days.');
+    }
+    if (rewardType === 'membership') {
+      const { data: tier, error: tierError } = await supabase
+        .from('membership_tiers')
+        .select('slug')
+        .eq('slug', membershipTier)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (tierError) throw tierError;
+      if (!tier) return safeError(res, 400, 'Choose an active membership tier.');
+    }
+
+    const { data, error } = await couponSupabase
+      .from('coupons')
+      .insert([{
+        code,
+        description: description || null,
+        reward_type: rewardType,
+        reward_amount: rewardType === 'tgc' ? rewardAmount : null,
+        membership_tier: rewardType === 'membership' ? membershipTier : null,
+        duration_days: rewardType === 'membership' ? durationDays : null,
+        max_redemptions: maxRedemptions === null || maxRedemptions === undefined || maxRedemptions === ''
+          ? null
+          : Number(maxRedemptions),
+        starts_at: startsAt,
+        expires_at: expiresAt,
+        is_active: true
+      }])
+      .select()
+      .single();
+
+    if (error?.code === '23505') return safeError(res, 409, 'That coupon code already exists.');
+    if (error) throw error;
+    return res.status(201).json({ data });
+  } catch (error) {
+    console.error('Failed to create coupon:', error);
+    return safeError(res, 500, 'Failed to create coupon');
+  }
+});
+
+app.patch('/api/admin/coupons/:id', requireAdminRole, async (req, res) => {
+  if (!couponSupabase) return safeError(res, 503, 'Coupon service is not configured');
+  if (typeof req.body?.is_active !== 'boolean') {
+    return safeError(res, 400, 'Coupon active status must be true or false.');
+  }
+
+  try {
+    const { data, error } = await couponSupabase
+      .from('coupons')
+      .update({ is_active: req.body.is_active })
+      .eq('id', req.params.id)
+      .select('id, code, is_active')
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return safeError(res, 404, 'Coupon not found');
+    return res.json({ data });
+  } catch (error) {
+    console.error('Failed to update coupon:', error);
+    return safeError(res, 500, 'Failed to update coupon');
+  }
+});
+
+app.post('/api/coupons/redeem', requireUser, couponRedeemLimiter, async (req, res) => {
+  if (!couponSupabase) return safeError(res, 503, 'Coupon service is not configured');
+
+  const code = String(req.body?.code || '').trim().toUpperCase();
+  if (!/^[A-Z0-9][A-Z0-9_-]{2,49}$/.test(code)) {
+    return safeError(res, 400, 'Enter a valid coupon code.');
+  }
+
+  try {
+    const { data, error } = await couponSupabase.rpc('redeem_coupon', {
+      p_user_id: req.userId,
+      p_code: code
+    });
+
+    if (error) {
+      const message = (error.message || '').toLowerCase();
+      if (message.includes('coupon_already_redeemed')) {
+        return safeError(res, 409, 'You have already redeemed this coupon.');
+      }
+      if (message.includes('coupon_not_found') || message.includes('coupon_unavailable')) {
+        return safeError(res, 400, 'This coupon is invalid, expired, or no longer available.');
+      }
+      if (message.includes('player_profile_missing')) {
+        return safeError(res, 400, 'Your player profile is not ready to redeem coupons.');
+      }
+      console.error('Coupon redemption failed:', error);
+      return safeError(res, 500, 'Could not redeem this coupon. Please try again later.');
+    }
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('Coupon redemption failed:', error);
+    return safeError(res, 500, 'Could not redeem this coupon. Please try again later.');
   }
 });
 
@@ -3461,4 +3679,4 @@ const membershipExpiryInterval = setInterval(() => {
 }, 60 * 60 * 1000);
 membershipExpiryInterval.unref();
 
-app.listen(PORT, '0.0.0.0', () => console.log(`Taigour E-Sports server running on http://0.0.0.0:${PORT}`));
+app.listen(PORT, () => console.log(`Taigour E-Sports server running on http://0.0.0.0:${PORT}`));
