@@ -7,6 +7,7 @@ import FadeContent from '../components/ReactBits/FadeContent';
 import BlurText from '../components/ReactBits/BlurText';
 import ShinyText from '../components/ReactBits/ShinyText';
 import ErrorBox from '../components/ErrorBox.jsx';
+import CountUpNumber from '../components/CountUpNumber.jsx';
 
 const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
   const { user, profile, loading, loginWithGoogle, logout, reloadProfile } = useAuth();
@@ -137,16 +138,12 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
   if (!user) {
     return (
       <div className="pt-32 pb-24 px-4 bg-bg-dark min-h-screen flex items-center justify-center relative overflow-hidden">
-        {/* Decorative background glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
-
         <div
           className="glass p-8 md:p-12 rounded-2xl max-w-lg w-full text-center relative border border-primary/10"
           style={{ boxShadow: '0 0 50px rgba(0,212,255,0.05)' }}
         >
           <div className="w-16 h-16 bg-primary/10 border border-primary/30 rounded-2xl flex items-center justify-center mx-auto mb-6 relative">
             <i className="fa-solid fa-lock text-2xl text-primary animate-pulse"></i>
-            <div className="absolute -inset-1 bg-primary/20 blur-md rounded-2xl -z-10"></div>
           </div>
 
           <h1 className="text-xl font-orbitron font-black text-white uppercase tracking-tight mb-3 sm:text-2xl">
@@ -380,7 +377,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                   {stat.label}
                 </span>
                 <span className="block font-space text-base font-black leading-none text-white md:text-xl">
-                  {stat.val}
+                  <CountUpNumber value={stat.val} />
                 </span>
               </div>
               <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#050d14] transition-colors group-hover:bg-cyan-400/15 md:h-10 md:w-10">
@@ -497,7 +494,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                                 reg.registration_status === 'approved' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                                 reg.registration_status === 'rejected' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
                                 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                              }`} style={{ backdropFilter: 'blur(4px)' }}>
+                              }`}>
                                 {reg.registration_status || 'PENDING'}
                               </span>
                             </div>

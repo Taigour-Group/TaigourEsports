@@ -400,7 +400,7 @@ const PlayerStatsAdmin = ({ registrations }) => {
 
       {/* Edit Modal */}
       {editingPlayer && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center overflow-y-auto bg-black/80 p-3 backdrop-blur-sm sm:p-5">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center overflow-y-auto bg-black/90 p-3 sm:p-5">
           <button
             type="button"
             aria-label="Close player editor"

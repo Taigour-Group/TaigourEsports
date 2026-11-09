@@ -10,7 +10,7 @@ import PlayerStatsAdmin from './PlayerStatsAdmin';
 import NotificationsAdmin from './NotificationsAdmin';
 import ErrorBox from './ErrorBox.jsx';
 const AdminPanel = ({
-  tournaments, saveTournaments, refetchTournaments,
+  tournaments, onTournamentsChange,
   leaderboard, saveLeaderboard,
   streams, saveStreams,
   registrations, saveRegistrations,
@@ -32,6 +32,7 @@ const AdminPanel = ({
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const [editRegForm, setEditRegForm] = useState({});
   const [savingReg, setSavingReg] = useState(false);
+  const [savingTournament, setSavingTournament] = useState(false);
   const [errorBox, setErrorBox] = useState(null);
   const [catalogMode, setCatalogMode] = useState('membership');
   const [membershipItems, setMembershipItems] = useState([]);
@@ -352,13 +353,24 @@ const AdminPanel = ({
 
   const handleSaveTournament = async (e) => {
     e.preventDefault();
-    if (tourneyForm.registration_start_date && tourneyForm.registration_end_date) {
-      const regStart = new Date(tourneyForm.registration_start_date);
-      const regEnd = new Date(tourneyForm.registration_end_date);
-      if (regStart > regEnd) {
-        alert('Registration start date must be before or equal to registration end date.');
-        return;
-      }
+    if (savingTournament) return;
+    const tournamentTitle = String(tourneyForm.title || '').trim();
+    if (!tournamentTitle) {
+      setErrorBox('Enter a tournament title before saving.');
+      return;
+    }
+    if (!Number.isInteger(Number(tourneyForm.max_slots)) || Number(tourneyForm.max_slots) < 1) {
+      setErrorBox('Maximum slots must be at least 1.');
+      return;
+    }
+    if (!Number.isInteger(Number(tourneyForm.team_size)) || Number(tourneyForm.team_size) < 1) {
+      setErrorBox('Team size must be at least 1.');
+      return;
+    }
+    if (tourneyForm.registration_start_date && tourneyForm.registration_end_date
+      && tourneyForm.registration_start_date > tourneyForm.registration_end_date) {
+      setErrorBox('Registration start date must be before or equal to registration end date.');
+      return;
     }
 
     const gameLabel = tourneyForm.type === 'freefire' ? 'Free Fire' : tourneyForm.type === 'pubg' ? 'PUBG Mobile' : 'Ludo King';
@@ -366,11 +378,13 @@ const AdminPanel = ({
 
     const finalForm = {
       ...tourneyForm,
+      title: tournamentTitle,
       game: gameLabel,
       rules: sanitizedRules,
       registration_fields: normalizeRegistrationFieldConfig(tourneyForm.registration_fields)
     };
 
+    setSavingTournament(true);
     try {
       let response;
       if (editingId) {
@@ -391,21 +405,21 @@ const AdminPanel = ({
 
       if (response.ok) {
         const result = await response.json();
-        // Update local state
         const newData = editingId
           ? tournaments.map(t => t.id === editingId ? result.data : t)
           : [...tournaments, result.data];
-        await saveTournaments(newData);
-        // Refetch from database to ensure display is updated
-        await refetchTournaments();
+        onTournamentsChange(newData);
+        setErrorBox(null);
         resetForms();
       } else {
-        const error = await response.json();
-        alert(`Failed to save tournament: ${error.error}`);
+        const error = await response.json().catch(() => ({}));
+        setErrorBox(`Failed to save tournament: ${error.error || 'Please try again.'}`);
       }
     } catch (error) {
       console.error('Save tournament failed:', error);
-      alert('Failed to save tournament. Please try again.');
+      setErrorBox(`Failed to save tournament: ${error.message || 'Please try again.'}`);
+    } finally {
+      setSavingTournament(false);
     }
   };
 
@@ -708,7 +722,7 @@ const AdminPanel = ({
       switch (activeView) {
         case 'tournaments': {
           const res = await adminFetch(`/api/admin/tournaments/${id}`, { method: 'DELETE' });
-          if (res.ok) await saveTournaments(tournaments.filter(t => t.id !== id));
+          if (res.ok) onTournamentsChange(tournaments.filter(t => t.id !== id));
           break;
         }
         case 'leaderboard': {
@@ -768,22 +782,25 @@ const AdminPanel = ({
   );
 
   const updatePrizeBreakdown = (index, field, value) => {
-    const newBreakdown = [...(tourneyForm.prize_breakdown || [])];
-    newBreakdown[index] = { ...newBreakdown[index], [field]: value };
-    setTourneyForm({ ...tourneyForm, prize_breakdown: newBreakdown });
-  };
-
-  const addPrizeRow = () => {
-    setTourneyForm({
-      ...tourneyForm,
-      prize_breakdown: [...(tourneyForm.prize_breakdown || []), { position: '', reward: '' }]
+    setTourneyForm(prev => {
+      const newBreakdown = [...(prev.prize_breakdown || [])];
+      newBreakdown[index] = { ...newBreakdown[index], [field]: value };
+      return { ...prev, prize_breakdown: newBreakdown };
     });
   };
 
+  const addPrizeRow = () => {
+    setTourneyForm(prev => ({
+      ...prev,
+      prize_breakdown: [...(prev.prize_breakdown || []), { position: '', reward: '' }]
+    }));
+  };
+
   const removePrizeRow = (index) => {
-    const newBreakdown = [...(tourneyForm.prize_breakdown || [])];
-    newBreakdown.splice(index, 1);
-    setTourneyForm({ ...tourneyForm, prize_breakdown: newBreakdown });
+    setTourneyForm(prev => ({
+      ...prev,
+      prize_breakdown: (prev.prize_breakdown || []).filter((_, rowIndex) => rowIndex !== index)
+    }));
   };
 
   const getRegistrationMessageKey = (registration) => {
@@ -905,7 +922,7 @@ const AdminPanel = ({
 
   return (
     <div className="min-h-screen bg-[#030b12] font-rajdhani text-white">
-      <header className="sticky top-0 z-[100] border-b border-cyann bg-[#030b12]/95 shadow-[0_8px_30px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+      <header className="sticky top-0 z-[100] border-b border-cyann bg-[#030b12] shadow-[0_8px_24px_rgba(0,0,0,0.24)]">
         <div className="relative mx-auto flex min-h-[60px] max-w-[1440px] items-center justify-between gap-3 px-3 sm:px-5 lg:px-8">
           <div className="flex min-w-0 shrink-0 items-center gap-3 sm:gap-4">
             <img
@@ -1882,7 +1899,7 @@ const AdminPanel = ({
                 {activeView === 'tournaments' && (
                   <form
                     onSubmit={handleSaveTournament}
-                    className="space-y-3 [&_input]:!px-2 [&_input]:!py-1.5 [&_input]:!text-[11px] [&_select]:!px-2 [&_select]:!py-1.5 [&_select]:!text-[11px] [&_textarea]:!px-2 [&_textarea]:!py-1.5 [&_textarea]:!text-[11px]"
+                    className="space-y-5 [&_input]:!text-[13px] [&_select]:!text-[13px] [&_textarea]:!text-[13px] [&_label]:!text-[10px]"
                   >
                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                       <div className="space-y-1">
@@ -1893,7 +1910,7 @@ const AdminPanel = ({
                           onChange={e => {
                             const newType = e.target.value;
                             const defaultSize = newType === 'pubg' ? 5 : (newType === 'freefire' ? 4 : 1);
-                            setTourneyForm({ ...tourneyForm, type: newType, team_size: defaultSize });
+                            setTourneyForm(prev => ({ ...prev, type: newType, team_size: defaultSize }));
                           }}
                         >
                           <option value="freefire">Free Fire</option>
@@ -1907,7 +1924,8 @@ const AdminPanel = ({
                           type="number"
                           className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs"
                           value={tourneyForm.max_slots}
-                          onChange={e => setTourneyForm({ ...tourneyForm, max_slots: parseInt(e.target.value) || 0 })}
+                          min="1"
+                          onChange={e => setTourneyForm(prev => ({ ...prev, max_slots: parseInt(e.target.value) || 0 }))}
                         />
                       </div>
                       <div className="space-y-1">
@@ -1918,7 +1936,7 @@ const AdminPanel = ({
                           max="10"
                           className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs"
                           value={tourneyForm.team_size || 4}
-                          onChange={e => setTourneyForm({ ...tourneyForm, team_size: parseInt(e.target.value) || 1 })}
+                          onChange={e => setTourneyForm(prev => ({ ...prev, team_size: parseInt(e.target.value) || 1 }))}
                         />
                       </div>
                     </div>
@@ -1931,7 +1949,7 @@ const AdminPanel = ({
                         className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs font-bold"
                         placeholder="Mission Name..."
                         value={tourneyForm.title}
-                        onChange={e => setTourneyForm({ ...tourneyForm, title: e.target.value })}
+                        onChange={e => setTourneyForm(prev => ({ ...prev, title: e.target.value }))}
                       />
                     </div>
 
@@ -1942,7 +1960,7 @@ const AdminPanel = ({
                         className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-[9px] md:text-[10px] mb-2 font-mono"
                         placeholder="https://image-link.com/banner.jpg"
                         value={tourneyForm.image}
-                        onChange={e => setTourneyForm({ ...tourneyForm, image: e.target.value })}
+                        onChange={e => setTourneyForm(prev => ({ ...prev, image: e.target.value }))}
                       />
                     </div>
 
@@ -1954,7 +1972,7 @@ const AdminPanel = ({
                           className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs"
                           placeholder="Dec 15, 2025"
                           value={tourneyForm.date}
-                          onChange={e => setTourneyForm({ ...tourneyForm, date: e.target.value })}
+                          onChange={e => setTourneyForm(prev => ({ ...prev, date: e.target.value }))}
                         />
                       </div>
                       <div className="space-y-1">
@@ -1964,7 +1982,7 @@ const AdminPanel = ({
                           className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs"
                           placeholder="07:00 PM"
                           value={tourneyForm.time}
-                          onChange={e => setTourneyForm({ ...tourneyForm, time: e.target.value })}
+                          onChange={e => setTourneyForm(prev => ({ ...prev, time: e.target.value }))}
                         />
                       </div>
                     </div>
@@ -1976,7 +1994,7 @@ const AdminPanel = ({
                           type="date"
                           className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs"
                           value={tourneyForm.registration_start_date || ''}
-                          onChange={e => setTourneyForm({ ...tourneyForm, registration_start_date: e.target.value })}
+                          onChange={e => setTourneyForm(prev => ({ ...prev, registration_start_date: e.target.value }))}
                         />
                       </div>
                       <div className="space-y-1">
@@ -1985,7 +2003,7 @@ const AdminPanel = ({
                           type="date"
                           className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs"
                           value={tourneyForm.registration_end_date || ''}
-                          onChange={e => setTourneyForm({ ...tourneyForm, registration_end_date: e.target.value })}
+                          onChange={e => setTourneyForm(prev => ({ ...prev, registration_end_date: e.target.value }))}
                         />
                       </div>
                     </div>
@@ -1997,7 +2015,7 @@ const AdminPanel = ({
                         className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs"
                         placeholder="Nepal / Bermuda"
                         value={tourneyForm.location}
-                        onChange={e => setTourneyForm({ ...tourneyForm, location: e.target.value })}
+                        onChange={e => setTourneyForm(prev => ({ ...prev, location: e.target.value }))}
                       />
                     </div>
 
@@ -2008,7 +2026,7 @@ const AdminPanel = ({
                         className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs font-rajdhani"
                         placeholder="Mission Briefing..."
                         value={tourneyForm.description}
-                        onChange={e => setTourneyForm({ ...tourneyForm, description: e.target.value })}
+                        onChange={e => setTourneyForm(prev => ({ ...prev, description: e.target.value }))}
                       />
                     </div>
 
@@ -2019,7 +2037,7 @@ const AdminPanel = ({
                           type="text"
                           className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs"
                           value={tourneyForm.prize}
-                          onChange={e => setTourneyForm({ ...tourneyForm, prize: e.target.value })}
+                          onChange={e => setTourneyForm(prev => ({ ...prev, prize: e.target.value }))}
                         />
                       </div>
                       <div className="space-y-1">
@@ -2028,7 +2046,7 @@ const AdminPanel = ({
                           type="text"
                           className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs"
                           value={tourneyForm.entry_fee}
-                          onChange={e => setTourneyForm({ ...tourneyForm, entry_fee: e.target.value })}
+                          onChange={e => setTourneyForm(prev => ({ ...prev, entry_fee: e.target.value }))}
                         />
                       </div>
                     </div>
@@ -2045,7 +2063,7 @@ const AdminPanel = ({
                         </div>
                         <button
                           type="button"
-                          onClick={() => setTourneyForm({ ...tourneyForm, login_required: !tourneyForm.login_required })}
+                          onClick={() => setTourneyForm(prev => ({ ...prev, login_required: !prev.login_required }))}
                           className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-all ${tourneyForm.login_required ? 'bg-primary shadow-[0_0_10px_rgba(0,212,255,0.5)]' : 'bg-gray-800'}`}
                         >
                           <div className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${tourneyForm.login_required ? 'left-6' : 'left-1'}`}></div>
@@ -2057,7 +2075,7 @@ const AdminPanel = ({
                         <div className="grid grid-cols-2 gap-2 md:gap-3">
                           <button
                             type="button"
-                            onClick={() => setTourneyForm({ ...tourneyForm, payment_type: 'tgc_coin', login_required: true })}
+                            onClick={() => setTourneyForm(prev => ({ ...prev, payment_type: 'tgc_coin', login_required: true }))}
                             className={`rounded-lg border p-2.5 text-center transition-all ${
                               tourneyForm.payment_type === 'tgc_coin'
                                 ? 'bg-primary/20 border-primary text-primary'
@@ -2071,7 +2089,7 @@ const AdminPanel = ({
 
                           <button
                             type="button"
-                            onClick={() => setTourneyForm({ ...tourneyForm, payment_type: 'direct_payment' })}
+                            onClick={() => setTourneyForm(prev => ({ ...prev, payment_type: 'direct_payment' }))}
                             className={`rounded-lg border p-2.5 text-center transition-all ${
                               tourneyForm.payment_type === 'direct_payment'
                                 ? 'bg-pink/20 border-pink text-pink'
@@ -2130,7 +2148,7 @@ const AdminPanel = ({
                         className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs font-mono"
                         placeholder="https://docs.google.com/..."
                         value={tourneyForm.registration_url}
-                        onChange={e => setTourneyForm({ ...tourneyForm, registration_url: e.target.value })}
+                        onChange={e => setTourneyForm(prev => ({ ...prev, registration_url: e.target.value }))}
                       />
                     </div>
 
@@ -2141,7 +2159,7 @@ const AdminPanel = ({
                         className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs font-mono"
                         placeholder="YouTube Video ID"
                         value={tourneyForm.stream_id}
-                        onChange={e => setTourneyForm({ ...tourneyForm, stream_id: e.target.value })}
+                        onChange={e => setTourneyForm(prev => ({ ...prev, stream_id: e.target.value }))}
                       />
                     </div>
 
@@ -2179,12 +2197,12 @@ const AdminPanel = ({
                         rows={3}
                         className="w-full bg-white/5 border border-white/10 p-2 md:p-3 rounded-xl text-white outline-none focus:border-primary transition-all text-xs custom-scrollbar"
                         value={tourneyForm.rules?.join('\n')}
-                        onChange={e => setTourneyForm({ ...tourneyForm, rules: e.target.value.split('\n') })}
+                        onChange={e => setTourneyForm(prev => ({ ...prev, rules: e.target.value.split('\n') }))}
                       />
                     </div>
 
-                    <button type="submit" className="w-full rounded bg-primary py-2 text-[10px] font-black uppercase tracking-[0.12em] text-dark cyber-button shadow-[0_0_20px_rgba(0,212,255,0.2)]">
-                      {editingId ? 'COMMIT UPDATES' : 'DEPLOY SECTOR'}
+                    <button type="submit" disabled={savingTournament} className="w-full rounded-lg bg-primary py-3 text-xs font-black uppercase tracking-[0.12em] text-dark cyber-button shadow-[0_0_20px_rgba(0,212,255,0.2)] transition-opacity disabled:cursor-not-allowed disabled:opacity-60">
+                      {savingTournament ? <><i className="fa-solid fa-spinner fa-spin mr-2"></i>Saving tournament...</> : editingId ? 'Save tournament changes' : 'Create tournament'}
                     </button>
                   </form>
                 )}
@@ -2339,7 +2357,7 @@ const AdminPanel = ({
       {/* Registration Edit Panel */}
       {viewingReg && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center overflow-y-auto p-3 sm:p-5">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setViewingReg(null)}></div>
+          <div className="absolute inset-0 bg-black/90" onClick={() => setViewingReg(null)}></div>
           <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-white/10 bg-bg-card shadow-2xl animate-fade-in sm:max-h-[calc(100dvh-2.5rem)]">
 
             {/* Header */}

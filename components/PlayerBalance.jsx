@@ -790,7 +790,7 @@ const PlayerBalance = () => {
 
       {/* Membership Modal */}
       {showMembershipModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-black/75 p-3 backdrop-blur-sm sm:p-5">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-black/90 p-3 sm:p-5">
           <div
             role="dialog"
             aria-modal="true"

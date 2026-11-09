@@ -1,14 +1,9 @@
 
-import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
-import AdminGate from './components/AdminGate.jsx';
-import AdminPanel from './components/AdminPanel.jsx';
 import OnboardingModal from './components/OnboardingModal.jsx';
-import Preloader from './components/Preloader.jsx';
-import LegalLayout from './pages/LegalLayout.jsx';
-import { useAuth } from './context/AuthContext.jsx';
 import { dbService } from './services/dbService.js';
 import { balanceService } from './services/balanceService.js';
 import { hydrateCatalogFromSupabase } from './constants/balanceConstants.js';
@@ -28,34 +23,114 @@ const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage.jsx'));
 const LegalLandingPage = lazy(() => import('./pages/LegalLandingPage.jsx'));
 const LegalPage = lazy(() => import('./pages/LegalLayout.jsx'));
 const MobileAppDownloadPage = lazy(() => import('./pages/MobileAppDownloadPage.jsx'));
+const AdminGate = lazy(() => import('./components/AdminGate.jsx'));
+const AdminPanel = lazy(() => import('./components/AdminPanel.jsx'));
 
-const SHOW_PRELOADER = false;
+const RouteDataLoader = ({
+  setTournaments,
+  setLeaderboard,
+  setStreams,
+  setRegistrations,
+  setLogs
+}) => {
+  const location = useLocation();
+  const inFlightRequests = useRef(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+    const path = location.pathname;
+    const dataRequirements = path === '/'
+      ? ['tournaments', 'registrations']
+      : path === '/games'
+        ? ['tournaments']
+        : path === '/tournaments' || path.startsWith('/tournament/')
+          ? ['tournaments', 'registrations']
+          : path === '/leaderboard'
+            ? ['leaderboard']
+            : path === '/streams'
+              ? ['streams']
+              : path === '/profile'
+                ? ['tournaments', 'registrations', 'leaderboard']
+                : path === '/admin'
+                  ? ['tournaments', 'leaderboard', 'streams', 'registrations', 'logs']
+                  : [];
+    const dataLoaders = {
+      tournaments: dbService.getTournaments,
+      leaderboard: dbService.getLeaderboard,
+      streams: dbService.getStreams,
+      registrations: dbService.getRegistrations,
+      logs: dbService.getLogs
+    };
+    const dataSetters = {
+      tournaments: setTournaments,
+      leaderboard: setLeaderboard,
+      streams: setStreams,
+      registrations: setRegistrations,
+      logs: setLogs
+    };
+    const loadOnce = (key, loader) => {
+      const existingRequest = inFlightRequests.current.get(key);
+      if (existingRequest) return existingRequest;
+
+      const request = Promise.resolve().then(loader);
+      inFlightRequests.current.set(key, request);
+      const clearRequest = () => {
+        if (inFlightRequests.current.get(key) === request) {
+          inFlightRequests.current.delete(key);
+        }
+      };
+      request.then(clearRequest, clearRequest);
+      return request;
+    };
+
+    Promise.all(dataRequirements.map(async (key) => [key, await loadOnce(key, dataLoaders[key])]))
+      .then((results) => {
+        if (cancelled) return;
+        results.forEach(([key, data]) => dataSetters[key](data));
+      })
+      .catch((error) => console.error(`Failed to load data for ${path}:`, error));
+
+    if (path === '/profile') {
+      loadOnce('catalog', () => balanceService.getCatalog()).then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error('Failed to load catalog:', error);
+          return;
+        }
+        if (data) hydrateCatalogFromSupabase(data);
+      });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, setTournaments, setLeaderboard, setStreams, setRegistrations, setLogs]);
+
+  return null;
+};
 
 const App = () => {
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-
-  // App State - Initialized as empty arrays to prevent slice errors
+  const [theme, setTheme] = useState(() => (
+    window.localStorage.getItem('taigour-theme') === 'dark' ? 'dark' : 'light'
+  ));
+  // Keep data available when switching between routes.
   const [tournaments, setTournaments] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [streams, setStreams] = useState([]);
-  const [registrations, setRegistrations] = useState([]); 
+  const [registrations, setRegistrations] = useState([]);
   const [logs, setLogs] = useState([]);
   const initialLoadStartedRef = useRef(false);
 
-  const loadCatalog = useCallback(async () => {
-    try {
-      const { data, error } = await balanceService.getCatalog();
-      if (!error && data) {
-        hydrateCatalogFromSupabase(data);
-      }
-    } catch (error) {
-      console.error('Failed to load catalog:', error);
-    }
-  }, []);
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('taigour-theme', theme);
+    document.querySelector("meta[name='theme-color']")?.setAttribute(
+      'content',
+      theme === 'light' ? '#f3f6fa' : '#0B0F14'
+    );
+  }, [theme]);
 
-  // Single shared data-fetch function — no duplication
-  const refetchAllData = useCallback(async () => {
+  const refetchAdminData = useCallback(async () => {
     try {
       const [tournamentsData, leaderboardData, streamsData, registrationsData, logsData] = await Promise.all([
         dbService.getTournaments(),
@@ -70,11 +145,11 @@ const App = () => {
       setRegistrations(registrationsData);
       setLogs(logsData);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('Failed to refresh admin data:', error);
     }
   }, []);
 
-  // Initial load + Capacitor deep-link / OAuth error handling
+  // Capacitor deep-link / OAuth error handling.
   useEffect(() => {
     if (initialLoadStartedRef.current) return;
     initialLoadStartedRef.current = true;
@@ -94,22 +169,7 @@ const App = () => {
       alert("Mobile Login Error: Please ensure your computer's local IP address is added to your Supabase project's 'Allowed Redirect URLs'.");
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-
-    const initialLoad = async () => {
-      await loadCatalog();
-      await refetchAllData();
-      setLoading(false);
-    };
-    initialLoad();
-  }, [loadCatalog, refetchAllData]);
-
-  // Re-fetch data when the logged-in user changes (login / logout)
-  useEffect(() => {
-    if (!loading) {
-      refetchAllData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, []);
 
   const RouteMeta = () => {
     const location = useLocation();
@@ -188,30 +248,6 @@ const App = () => {
 
   // ── Admin handlers ──────────────────────────────────────────────
 
-  const handleSaveTournaments = useCallback(async (data) => {
-    try {
-      const response = await fetch('/api/admin/tournaments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (response.ok) {
-        setTournaments(data);
-        const updatedLogs = await dbService.getLogs();
-        setLogs(updatedLogs);
-        return true;
-      }
-    } catch (error) {
-      console.error('Failed to save tournaments:', error);
-    }
-    return false;
-  }, []);
-
-  const refetchTournaments = useCallback(async () => {
-    const data = await dbService.getTournaments();
-    setTournaments(data);
-  }, []);
-
   const handleSaveLeaderboard = useCallback(async (data) => {
     try {
       const response = await fetch('/api/admin/leaderboard', {
@@ -260,34 +296,43 @@ const App = () => {
   const handleRegister = useCallback(async () => {
     const updatedRegistrations = await dbService.getRegistrations();
     setRegistrations(updatedRegistrations);
-    const updatedLogs = await dbService.getLogs();
-    setLogs(updatedLogs);
   }, []);
 
   const handleRestore = useCallback(async (data) => {
     const success = await dbService.restoreDatabase(data);
     if (success) {
-      await refetchAllData();
+      await refetchAdminData();
     }
     return success;
-  }, [refetchAllData]);
-
-  if (loading && SHOW_PRELOADER) return <Preloader />;
+  }, [refetchAdminData]);
 
   return (
     <Router>
       <RouteMeta />
+      <RouteDataLoader
+        setTournaments={setTournaments}
+        setLeaderboard={setLeaderboard}
+        setStreams={setStreams}
+        setRegistrations={setRegistrations}
+        setLogs={setLogs}
+      />
       <div className="min-h-screen relative bg-bg-dark">
         {/* Hide global site header on admin route (admin has its own header) */}
-        {window.location.pathname !== '/admin' && <Header />}
+        {window.location.pathname !== '/admin' && (
+          <Header
+            theme={theme}
+            onToggleTheme={() => setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')}
+          />
+        )}
 
         {/* New-account onboarding: collect full name, age, game UID & contact right after login */}
         <OnboardingModal />
 
         <main className="min-h-[80vh]">
-          <Routes>
+          <Suspense fallback={<div className="min-h-[60vh]" aria-label="Loading page" />}>
+            <Routes>
 
-              <Route path="/" element={<HomePage tournaments={tournaments} leaderboard={leaderboard} registrations={registrations} />} />
+              <Route path="/" element={<HomePage tournaments={tournaments} registrations={registrations} />} />
               <Route path="/games" element={<GamesPage tournaments={tournaments} />} />
               <Route path="/tournaments" element={<TournamentsPage tournaments={tournaments} registrations={registrations} />} />
               <Route path="/tournament/:id" element={<TournamentDetailsPage tournaments={tournaments} onRegister={handleRegister} registrations={registrations} />} />
@@ -300,7 +345,7 @@ const App = () => {
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
               <Route path="/terms-of-service" element={<TermsOfServicePage />} />
               <Route path="/download-app" element={<MobileAppDownloadPage />} />
-              <Route path="/legal-layout" element={<LegalLayout />} />
+              <Route path="/legal-layout" element={<LegalPage />} />
 
               {/* Admin Route */}
               <Route path="/admin" element={
@@ -308,8 +353,7 @@ const App = () => {
                   {({ onLogout }) => (
                     <AdminPanel
                       tournaments={tournaments}
-                      saveTournaments={handleSaveTournaments}
-                      refetchTournaments={refetchTournaments}
+                      onTournamentsChange={setTournaments}
                       leaderboard={leaderboard}
                       saveLeaderboard={handleSaveLeaderboard}
                       streams={streams}
@@ -324,6 +368,7 @@ const App = () => {
                 </AdminGate>
               } />
             </Routes>
+          </Suspense>
         </main>
 
         <Footer />

@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getTournamentRegistrationFields } from '../constants/registrationFields';
 
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
 const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) => {
   const { user, profile } = useAuth();
+  const formContainerRef = useRef(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [formErrors, setFormErrors] = useState({});
+  const previewUrls = useRef(new Set());
   const requiredFields = getTournamentRegistrationFields(tournament);
   const isFieldRequired = (fieldKey) => requiredFields[fieldKey] ?? true;
 
@@ -21,39 +26,35 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
     managerFullName: '',
     managerContactNumber: '',
     // Player Details (determined by team_size)
-    players: Array.from(
-      { length: tournament?.team_size || (tournament?.game?.includes('PUBG') ? 5 : tournament?.game?.includes('Free Fire') ? 4 : 1) },
-      (_, i) => ({ id: i + 1, fullName: '', uid: '', citizenshipPhoto: null, citizenshipPhotoPreview: '' })
-    )
+    players: Array.from({ length: Math.max(1, Number(tournament?.team_size) || (
+      String(tournament?.type || tournament?.game || '').toLowerCase().includes('pubg')
+        ? 5
+        : String(tournament?.type || tournament?.game || '').toLowerCase().includes('freefire')
+          || String(tournament?.type || tournament?.game || '').toLowerCase().includes('free fire')
+          ? 4
+          : 1
+    )) }, (_, i) => ({ id: i + 1, fullName: '', uid: '', citizenshipPhoto: null, citizenshipPhotoPreview: '' }))
   });
 
-  // Auto-fill registrant email if logged in
   useEffect(() => {
-    if (user?.email) {
-      setFormData(prev => ({
-        ...prev,
-        registrantEmail: user.email
-      }));
-    }
-    if (profile?.full_name) {
-      setFormData(prev => ({
-        ...prev,
-        managerFullName: profile.full_name
-      }));
-    }
-    if (profile?.contact_info) {
-      setFormData(prev => ({
-        ...prev,
-        managerContactNumber: profile.contact_info
-      }));
-    }
-  }, [user, profile]);
+    setFormData(prev => ({
+      ...prev,
+      registrantEmail: prev.registrantEmail || user?.email || '',
+      managerFullName: prev.managerFullName || profile?.full_name || '',
+      managerContactNumber: prev.managerContactNumber || profile?.contact_info || ''
+    }));
+  }, [user?.email, profile?.full_name, profile?.contact_info]);
+
+  useEffect(() => () => {
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrls.current.clear();
+  }, []);
 
   const validateStep = (step) => {
     const errors = {};
 
     if (step === 1) {
-      if (isFieldRequired('registrant_email')) {
+      if (isFieldRequired('registrant_email') || formData.registrantEmail.trim()) {
         if (!formData.registrantEmail.trim()) errors.registrantEmail = 'Email is required';
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.registrantEmail)) {
           errors.registrantEmail = 'Invalid email format';
@@ -69,7 +70,7 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
 
     if (step === 3) {
       if (isFieldRequired('manager_name') && !formData.managerFullName.trim()) errors.managerFullName = 'Manager full name is required';
-      if (isFieldRequired('manager_contact')) {
+      if (isFieldRequired('manager_contact') || formData.managerContactNumber.trim()) {
         if (!formData.managerContactNumber.trim()) errors.managerContactNumber = 'Contact number is required';
         else if (!/^[+]?[\d\s-()]{7,}$/.test(formData.managerContactNumber.replace(/\s/g, ''))) {
           errors.managerContactNumber = 'Invalid phone number format';
@@ -98,19 +99,24 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
   const handleNextStep = () => {
     if (validateStep(currentStep)) {
       setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      formContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handlePrevStep = () => {
     setCurrentStep(currentStep - 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    formContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleInputChange = (field, value) => {
+    if (field === 'teamLogo' && !value && formData.teamLogoPreview) {
+      URL.revokeObjectURL(formData.teamLogoPreview);
+      previewUrls.current.delete(formData.teamLogoPreview);
+    }
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
+      ...(field === 'teamLogo' && !value ? { teamLogoPreview: '' } : {})
     }));
     if (formErrors[field]) {
       setFormErrors(prev => ({
@@ -121,66 +127,81 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
   };
 
   const handleFileChange = (field, file) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({
-          ...prev,
-          [field]: file,
-          [field + 'Preview']: reader.result
-        }));
-        if (formErrors[field]) {
-          setFormErrors(prev => ({
-            ...prev,
-            [field]: ''
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
+      setFormErrors(prev => ({ ...prev, [field]: 'Choose a JPG, PNG, or WebP image.' }));
+      return;
     }
+    if (file.size > MAX_IMAGE_SIZE) {
+      setFormErrors(prev => ({ ...prev, [field]: 'Image must be 2 MB or smaller.' }));
+      return;
+    }
+
+    const previewField = `${field}Preview`;
+    const previousPreview = formData[previewField];
+    if (previousPreview) {
+      URL.revokeObjectURL(previousPreview);
+      previewUrls.current.delete(previousPreview);
+    }
+    const preview = URL.createObjectURL(file);
+    previewUrls.current.add(preview);
+    setFormData(prev => ({ ...prev, [field]: file, [previewField]: preview }));
+    setFormErrors(prev => ({ ...prev, [field]: '' }));
   };
 
   const handlePlayerChange = (playerIndex, field, value) => {
+    const existingPreview = formData.players[playerIndex].citizenshipPhotoPreview;
+    if (field === 'citizenshipPhoto' && !value && existingPreview) {
+      URL.revokeObjectURL(existingPreview);
+      previewUrls.current.delete(existingPreview);
+    }
     const updatedPlayers = [...formData.players];
     updatedPlayers[playerIndex] = {
       ...updatedPlayers[playerIndex],
-      [field]: value
+      [field]: value,
+      ...(field === 'citizenshipPhoto' && !value ? { citizenshipPhotoPreview: '' } : {})
     };
     setFormData(prev => ({
       ...prev,
       players: updatedPlayers
     }));
-    if (formErrors[`player_${playerIndex}_${field}`]) {
+    const errorField = field === 'fullName' ? 'name' : field === 'uid' ? 'uid' : 'photo';
+    const errorKey = `player_${playerIndex}_${errorField}`;
+    if (formErrors[errorKey]) {
       setFormErrors(prev => ({
         ...prev,
-        [`player_${playerIndex}_${field}`]: ''
+        [errorKey]: ''
       }));
     }
   };
 
   const handlePlayerFileChange = (playerIndex, file) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const updatedPlayers = [...formData.players];
-        updatedPlayers[playerIndex] = {
-          ...updatedPlayers[playerIndex],
-          citizenshipPhoto: file,
-          citizenshipPhotoPreview: reader.result
-        };
-        setFormData(prev => ({
-          ...prev,
-          players: updatedPlayers
-        }));
-        if (formErrors[`player_${playerIndex}_photo`]) {
-          setFormErrors(prev => ({
-            ...prev,
-            [`player_${playerIndex}_photo`]: ''
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    const errorKey = `player_${playerIndex}_photo`;
+    if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
+      setFormErrors(prev => ({ ...prev, [errorKey]: 'Choose a JPG, PNG, or WebP image.' }));
+      return;
     }
+    if (file.size > MAX_IMAGE_SIZE) {
+      setFormErrors(prev => ({ ...prev, [errorKey]: 'Image must be 2 MB or smaller.' }));
+      return;
+    }
+
+    const previousPreview = formData.players[playerIndex].citizenshipPhotoPreview;
+    if (previousPreview) {
+      URL.revokeObjectURL(previousPreview);
+      previewUrls.current.delete(previousPreview);
+    }
+    const preview = URL.createObjectURL(file);
+    previewUrls.current.add(preview);
+    const updatedPlayers = [...formData.players];
+    updatedPlayers[playerIndex] = {
+      ...updatedPlayers[playerIndex],
+      citizenshipPhoto: file,
+      citizenshipPhotoPreview: preview
+    };
+    setFormData(prev => ({ ...prev, players: updatedPlayers }));
+    setFormErrors(prev => ({ ...prev, [errorKey]: '' }));
   };
 
   // addPlayer and removePlayer functions have been removed as team size is now strictly enforced
@@ -200,60 +221,63 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
   ];
 
   return (
-    <div className="w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div ref={formContainerRef} className="w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
       {/* Progress Indicator */}
-      <div className="sticky top-0 bg-bg-dark/95 backdrop-blur-sm z-10 p-4 border-b border-white/10">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-orbitron font-black text-white uppercase">
-            Team Registration - Step {currentStep}/4
-          </h3>
-          <span className="text-xs font-bold text-primary uppercase">{Math.round((currentStep / 4) * 100)}%</span>
+      <div className="sticky top-0 z-10 border-b border-white/10 bg-[#071321] p-4 sm:p-5">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300">Tournament Entry</p>
+            <h3 className="font-orbitron text-base font-black uppercase text-white sm:text-lg">
+              Team Registration
+            </h3>
+          </div>
+          <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-bold text-cyan-200">
+            STEP {currentStep} OF 4
+          </span>
         </div>
-        <div className="flex gap-2">
+        <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow={currentStep} aria-label={`Registration step ${currentStep} of 4`}>
+          <div className="h-full rounded-full bg-cyan-300 transition-[width] duration-300" style={{ width: `${(currentStep / 4) * 100}%` }} />
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
           {progressSteps.map((step) => (
-            <div key={step.number} className="flex-1 flex flex-col items-center gap-1">
-              <div
-                className={`w-full h-2 rounded-full transition-all ${
-                  step.number <= currentStep ? 'bg-primary' : 'bg-white/10'
-                }`}
-              ></div>
-              <span className="text-[10px] font-bold text-gray-400 text-center">{step.label}</span>
+            <div key={step.number} className={`truncate text-center text-[8px] font-bold uppercase tracking-wide sm:text-[9px] ${step.number === currentStep ? 'text-cyan-200' : step.number < currentStep ? 'text-white/70' : 'text-slate-500'}`}>
+              {step.label}
             </div>
           ))}
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6 md:p-7">
         {/* Step 1: Basic Details */}
         {currentStep === 1 && (
           <div className="space-y-6 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-orbitron font-black text-white mb-2 flex items-center gap-2">
-                <i className="fa-solid fa-envelope text-primary"></i> Basic Information
+              <h2 className="mb-2 flex items-center gap-2 font-orbitron text-xl font-black text-white sm:text-2xl">
+                <i className="fa-solid fa-envelope text-cyan-300"></i> Basic Information
               </h2>
-              <p className="text-sm text-gray-400">Enter the email of the person registering the team</p>
+              <p className="text-sm text-slate-400">Who should we contact about this registration?</p>
             </div>
 
-            {isFieldRequired('registrant_email') && (
-              <div>
-                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                  Email Address <span className="text-pink">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={formData.registrantEmail}
-                  onChange={(e) => handleInputChange('registrantEmail', e.target.value)}
-                  placeholder="your.email@example.com"
-                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                    formErrors.registrantEmail ? 'border-pink' : 'border-white/10 focus:border-primary'
-                  }`}
-                  disabled={!!user?.email}
-                />
-                {formErrors.registrantEmail && (
-                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.registrantEmail}</p>
-                )}
-              </div>
-            )}
+            <div>
+              <label htmlFor="registrant-email" className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-200">
+                Email Address {isFieldRequired('registrant_email') ? <span className="text-rose-400">*</span> : <span className="font-medium normal-case tracking-normal text-slate-500">(optional)</span>}
+              </label>
+              <input
+                id="registrant-email"
+                type="email"
+                autoComplete="email"
+                value={formData.registrantEmail}
+                onChange={(e) => handleInputChange('registrantEmail', e.target.value)}
+                placeholder="you@example.com"
+                aria-invalid={Boolean(formErrors.registrantEmail)}
+                className={`w-full rounded-lg border bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:ring-2 focus:ring-cyan-300/20 ${
+                  formErrors.registrantEmail ? 'border-rose-400' : 'border-white/10 focus:border-cyan-300'
+                }`}
+                disabled={!!user?.email}
+              />
+              {formErrors.registrantEmail && <p role="alert" className="mt-1 text-xs font-bold text-rose-300">{formErrors.registrantEmail}</p>}
+              {user?.email && <p className="mt-1.5 text-xs text-slate-500">Using your signed-in account email.</p>}
+            </div>
           </div>
         )}
 
@@ -261,62 +285,27 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
         {currentStep === 2 && (
           <div className="space-y-6 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-orbitron font-black text-white mb-2 flex items-center gap-2">
-                <i className="fa-solid fa-users text-primary"></i> Team Information
+              <h2 className="mb-2 flex items-center gap-2 font-orbitron text-xl font-black text-white sm:text-2xl">
+                <i className="fa-solid fa-users text-cyan-300"></i> Team Information
               </h2>
-              <p className="text-sm text-gray-400">Tell us about your team</p>
+              <p className="text-sm text-slate-400">Add your team identity and logo.</p>
             </div>
 
-            {(isFieldRequired('team_name') || isFieldRequired('team_tag')) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {isFieldRequired('team_name') && (
-                  <div>
-                    <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                      Team Name <span className="text-pink">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.teamName}
-                      onChange={(e) => handleInputChange('teamName', e.target.value)}
-                      placeholder="e.g., Phoenix Warriors"
-                      className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                        formErrors.teamName ? 'border-pink' : 'border-white/10 focus:border-primary'
-                      }`}
-                    />
-                    {formErrors.teamName && (
-                      <p className="mt-1 text-xs text-pink font-bold">{formErrors.teamName}</p>
-                    )}
-                  </div>
-                )}
-
-                {isFieldRequired('team_tag') && (
-                  <div>
-                    <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                      Team Tag <span className="text-pink">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.teamTag}
-                      onChange={(e) => handleInputChange('teamTag', e.target.value.toUpperCase())}
-                      placeholder="e.g., PW"
-                      maxLength="10"
-                      className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                        formErrors.teamTag ? 'border-pink' : 'border-white/10 focus:border-primary'
-                      }`}
-                    />
-                    {formErrors.teamTag && (
-                      <p className="mt-1 text-xs text-pink font-bold">{formErrors.teamTag}</p>
-                    )}
-                  </div>
-                )}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="team-name" className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-200">Team Name {isFieldRequired('team_name') ? <span className="text-rose-400">*</span> : <span className="font-medium normal-case tracking-normal text-slate-500">(optional)</span>}</label>
+                  <input id="team-name" type="text" value={formData.teamName} onChange={(e) => handleInputChange('teamName', e.target.value)} placeholder="e.g. Phoenix Warriors" aria-invalid={Boolean(formErrors.teamName)} className={`w-full rounded-lg border bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:ring-2 focus:ring-cyan-300/20 ${formErrors.teamName ? 'border-rose-400' : 'border-white/10 focus:border-cyan-300'}`} />
+                  {formErrors.teamName && <p role="alert" className="mt-1 text-xs font-bold text-rose-300">{formErrors.teamName}</p>}
+                </div>
+                <div>
+                  <label htmlFor="team-tag" className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-200">Team Tag {isFieldRequired('team_tag') ? <span className="text-rose-400">*</span> : <span className="font-medium normal-case tracking-normal text-slate-500">(optional)</span>}</label>
+                  <input id="team-tag" type="text" value={formData.teamTag} onChange={(e) => handleInputChange('teamTag', e.target.value.toUpperCase())} placeholder="e.g. PW" maxLength="10" aria-invalid={Boolean(formErrors.teamTag)} className={`w-full rounded-lg border bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:ring-2 focus:ring-cyan-300/20 ${formErrors.teamTag ? 'border-rose-400' : 'border-white/10 focus:border-cyan-300'}`} />
+                  {formErrors.teamTag && <p role="alert" className="mt-1 text-xs font-bold text-rose-300">{formErrors.teamTag}</p>}
+                </div>
               </div>
-            )}
 
-            {isFieldRequired('team_logo') && (
               <div>
-                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                  Team Logo <span className="text-pink">*</span>
-                </label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-200">Team Logo {isFieldRequired('team_logo') ? <span className="text-rose-400">*</span> : <span className="font-medium normal-case tracking-normal text-slate-500">(optional)</span>}</label>
                 <div className="relative">
                   {formData.teamLogoPreview ? (
                     <div className="relative w-full h-48 bg-white/5 rounded-lg border border-white/10 overflow-hidden flex items-center justify-center">
@@ -336,22 +325,22 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
                       <div className="text-center">
                         <i className="fa-solid fa-cloud-arrow-up text-3xl text-primary/50 mb-2"></i>
                         <p className="text-white font-bold text-sm">Click to upload Team Logo</p>
-                        <p className="text-gray-500 text-xs">PNG, JPG up to 2MB</p>
+                        <p className="text-slate-500 text-xs">JPG, PNG, or WebP · up to 2 MB</p>
                       </div>
                       <input
                         type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange('teamLogo', e.target.files[0])}
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={(e) => {
+                          handleFileChange('teamLogo', e.target.files[0]);
+                          e.target.value = '';
+                        }}
                         className="hidden"
                       />
                     </label>
                   )}
                 </div>
-                {formErrors.teamLogo && (
-                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.teamLogo}</p>
-                )}
+                {formErrors.teamLogo && <p role="alert" className="mt-1 text-xs font-bold text-rose-300">{formErrors.teamLogo}</p>}
               </div>
-            )}
           </div>
         )}
 
@@ -359,51 +348,24 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
         {currentStep === 3 && (
           <div className="space-y-6 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-orbitron font-black text-white mb-2 flex items-center gap-2">
-                <i className="fa-solid fa-user text-primary"></i> Team Manager Details
+              <h2 className="mb-2 flex items-center gap-2 font-orbitron text-xl font-black text-white sm:text-2xl">
+                <i className="fa-solid fa-user text-cyan-300"></i> Team Manager Details
               </h2>
-              <p className="text-sm text-gray-400">Information about the team manager/captain</p>
+              <p className="text-sm text-slate-400">Who can we contact about your team?</p>
             </div>
 
-            {isFieldRequired('manager_name') && (
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                  Full Real Name <span className="text-pink">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.managerFullName}
-                  onChange={(e) => handleInputChange('managerFullName', e.target.value)}
-                  placeholder="e.g., John Doe"
-                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                    formErrors.managerFullName ? 'border-pink' : 'border-white/10 focus:border-primary'
-                  }`}
-                />
-                {formErrors.managerFullName && (
-                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.managerFullName}</p>
-                )}
+                <label htmlFor="manager-name" className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-200">Full Name {isFieldRequired('manager_name') ? <span className="text-rose-400">*</span> : <span className="font-medium normal-case tracking-normal text-slate-500">(optional)</span>}</label>
+                <input id="manager-name" type="text" autoComplete="name" value={formData.managerFullName} onChange={(e) => handleInputChange('managerFullName', e.target.value)} placeholder="Your full name" aria-invalid={Boolean(formErrors.managerFullName)} className={`w-full rounded-lg border bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:ring-2 focus:ring-cyan-300/20 ${formErrors.managerFullName ? 'border-rose-400' : 'border-white/10 focus:border-cyan-300'}`} />
+                {formErrors.managerFullName && <p role="alert" className="mt-1 text-xs font-bold text-rose-300">{formErrors.managerFullName}</p>}
               </div>
-            )}
-
-            {isFieldRequired('manager_contact') && (
               <div>
-                <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                  Contact Number <span className="text-pink">*</span>
-                </label>
-                <input
-                  type="tel"
-                  value={formData.managerContactNumber}
-                  onChange={(e) => handleInputChange('managerContactNumber', e.target.value)}
-                  placeholder="+977 9800000000 or 9800000000"
-                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                    formErrors.managerContactNumber ? 'border-pink' : 'border-white/10 focus:border-primary'
-                  }`}
-                />
-                {formErrors.managerContactNumber && (
-                  <p className="mt-1 text-xs text-pink font-bold">{formErrors.managerContactNumber}</p>
-                )}
+                <label htmlFor="manager-contact" className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-200">Contact Number {isFieldRequired('manager_contact') ? <span className="text-rose-400">*</span> : <span className="font-medium normal-case tracking-normal text-slate-500">(optional)</span>}</label>
+                <input id="manager-contact" type="tel" autoComplete="tel" value={formData.managerContactNumber} onChange={(e) => handleInputChange('managerContactNumber', e.target.value)} placeholder="+977 9800000000" aria-invalid={Boolean(formErrors.managerContactNumber)} className={`w-full rounded-lg border bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:ring-2 focus:ring-cyan-300/20 ${formErrors.managerContactNumber ? 'border-rose-400' : 'border-white/10 focus:border-cyan-300'}`} />
+                {formErrors.managerContactNumber && <p role="alert" className="mt-1 text-xs font-bold text-rose-300">{formErrors.managerContactNumber}</p>}
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -411,70 +373,36 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
         {currentStep === 4 && (
           <div className="space-y-6 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-orbitron font-black text-white mb-2 flex items-center gap-2">
-                <i className="fa-solid fa-gamepad text-primary"></i> Team Roster
+              <h2 className="mb-2 flex items-center gap-2 font-orbitron text-xl font-black text-white sm:text-2xl">
+                <i className="fa-solid fa-gamepad text-cyan-300"></i> Team Roster
               </h2>
-              <p className="text-sm text-gray-400">Please provide details for all {formData.players.length} required players</p>
+              <p className="text-sm text-slate-400">Enter details for your {formData.players.length}-player roster. Fields marked optional can be skipped.</p>
             </div>
 
             {formData.players.map((player, index) => (
               <div
                 key={player.id}
-                className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4"
+                className="space-y-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-orbitron font-bold text-white">Player {index + 1}</h3>
                 </div>
 
-                {(isFieldRequired('player_name') || isFieldRequired('player_uid')) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {isFieldRequired('player_name') && (
-                      <div>
-                        <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                          Full Real Name <span className="text-pink">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={player.fullName}
-                          onChange={(e) => handlePlayerChange(index, 'fullName', e.target.value)}
-                          placeholder="Player name"
-                          className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                            formErrors[`player_${index}_name`] ? 'border-pink' : 'border-white/10 focus:border-primary'
-                          }`}
-                        />
-                        {formErrors[`player_${index}_name`] && (
-                          <p className="mt-1 text-xs text-pink font-bold">{formErrors[`player_${index}_name`]}</p>
-                        )}
-                      </div>
-                    )}
-
-                    {isFieldRequired('player_uid') && (
-                      <div>
-                        <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                          Game UID <span className="text-pink">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          value={player.uid}
-                          onChange={(e) => handlePlayerChange(index, 'uid', e.target.value)}
-                          placeholder="Player UID/ID"
-                          className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
-                            formErrors[`player_${index}_uid`] ? 'border-pink' : 'border-white/10 focus:border-primary'
-                          }`}
-                        />
-                        {formErrors[`player_${index}_uid`] && (
-                          <p className="mt-1 text-xs text-pink font-bold">{formErrors[`player_${index}_uid`]}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {isFieldRequired('citizenship_photo') && (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-bold text-white mb-2 uppercase tracking-widest">
-                      Citizenship Photo <span className="text-pink">*</span>
-                    </label>
+                    <label htmlFor={`player-${index}-name`} className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-200">Full Name {isFieldRequired('player_name') ? <span className="text-rose-400">*</span> : <span className="font-medium normal-case tracking-normal text-slate-500">(optional)</span>}</label>
+                    <input id={`player-${index}-name`} type="text" value={player.fullName} onChange={(e) => handlePlayerChange(index, 'fullName', e.target.value)} placeholder="Player's full name" aria-invalid={Boolean(formErrors[`player_${index}_name`])} className={`w-full rounded-lg border bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:ring-2 focus:ring-cyan-300/20 ${formErrors[`player_${index}_name`] ? 'border-rose-400' : 'border-white/10 focus:border-cyan-300'}`} />
+                    {formErrors[`player_${index}_name`] && <p role="alert" className="mt-1 text-xs font-bold text-rose-300">{formErrors[`player_${index}_name`]}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor={`player-${index}-uid`} className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-200">Game UID {isFieldRequired('player_uid') ? <span className="text-rose-400">*</span> : <span className="font-medium normal-case tracking-normal text-slate-500">(optional)</span>}</label>
+                    <input id={`player-${index}-uid`} type="text" inputMode="numeric" value={player.uid} onChange={(e) => handlePlayerChange(index, 'uid', e.target.value)} placeholder="In-game player ID" aria-invalid={Boolean(formErrors[`player_${index}_uid`])} className={`w-full rounded-lg border bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:ring-2 focus:ring-cyan-300/20 ${formErrors[`player_${index}_uid`] ? 'border-rose-400' : 'border-white/10 focus:border-cyan-300'}`} />
+                    {formErrors[`player_${index}_uid`] && <p role="alert" className="mt-1 text-xs font-bold text-rose-300">{formErrors[`player_${index}_uid`]}</p>}
+                  </div>
+                </div>
+
+                <div>
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-200">Citizenship Photo {isFieldRequired('citizenship_photo') ? <span className="text-rose-400">*</span> : <span className="font-medium normal-case tracking-normal text-slate-500">(optional)</span>}</label>
                     {player.citizenshipPhotoPreview ? (
                       <div className="relative w-full h-40 bg-white/5 rounded-lg border border-white/10 overflow-hidden flex items-center justify-center">
                         <img src={player.citizenshipPhotoPreview} alt="Citizenship Photo" className="max-h-full max-w-full object-contain" />
@@ -493,21 +421,23 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
                         <div className="text-center">
                           <i className="fa-solid fa-id-card text-2xl text-primary/50 mb-2"></i>
                           <p className="text-white font-bold text-sm">Upload Citizenship Photo</p>
-                          <p className="text-gray-500 text-xs">PNG, JPG up to 2MB</p>
+                          <p className="text-slate-500 text-xs">JPG, PNG, or WebP · up to 2 MB</p>
                         </div>
                         <input
                           type="file"
-                          accept="image/*"
-                          onChange={(e) => handlePlayerFileChange(index, e.target.files[0])}
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(e) => {
+                            handlePlayerFileChange(index, e.target.files[0]);
+                            e.target.value = '';
+                          }}
                           className="hidden"
                         />
                       </label>
                     )}
                     {formErrors[`player_${index}_photo`] && (
-                      <p className="mt-1 text-xs text-pink font-bold">{formErrors[`player_${index}_photo`]}</p>
+                      <p role="alert" className="mt-1 text-xs font-bold text-rose-300">{formErrors[`player_${index}_photo`]}</p>
                     )}
-                  </div>
-                )}
+                </div>
               </div>
             ))}
 
@@ -516,12 +446,12 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
         )}
 
         {/* Navigation Buttons */}
-        <div className="flex gap-4 sticky bottom-0 bg-bg-dark/95 backdrop-blur-sm -mx-6 -mb-6 px-6 py-4 border-t border-white/10">
+        <div className="sticky bottom-0 -mx-4 -mb-4 flex gap-2 border-t border-white/10 bg-[#071321] px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6 sm:py-4">
           {currentStep > 1 && (
             <button
               type="button"
               onClick={handlePrevStep}
-              className="flex-1 py-3 border border-white/20 text-white font-bold rounded-lg hover:bg-white/5 transition-all"
+              className="min-h-11 flex-1 rounded-lg border border-white/15 px-3 py-3 text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-white/5"
             >
               <i className="fa-solid fa-chevron-left mr-2"></i> PREVIOUS
             </button>
@@ -531,7 +461,7 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex-1 py-3 bg-primary text-dark font-bold rounded-lg hover:bg-primary/80 transition-all"
+              className="min-h-11 flex-1 rounded-lg bg-cyan-300 px-3 py-3 text-xs font-black uppercase tracking-wide text-[#031321] transition-colors hover:bg-cyan-200"
             >
               NEXT <i className="fa-solid fa-chevron-right ml-2"></i>
             </button>
@@ -539,7 +469,7 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-3 bg-primary text-dark font-bold rounded-lg hover:bg-primary/80 transition-all disabled:opacity-50"
+              className="min-h-11 flex-1 rounded-lg bg-cyan-300 px-3 py-3 text-xs font-black uppercase tracking-wide text-[#031321] transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
@@ -556,7 +486,8 @@ const TeamRegistrationForm = ({ tournament, onSubmit, onCancel, isSubmitting }) 
           <button
             type="button"
             onClick={onCancel}
-            className="py-3 px-6 border border-white/20 text-white font-bold rounded-lg hover:bg-white/5 transition-all"
+            aria-label="Cancel registration"
+            className="min-h-11 min-w-11 rounded-lg border border-white/15 px-3 py-3 text-white transition-colors hover:bg-white/5"
           >
             <i className="fa-solid fa-times"></i>
           </button>

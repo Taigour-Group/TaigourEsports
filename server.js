@@ -2239,6 +2239,7 @@ app.post('/api/admin/tournaments/add', requireAdminRole, async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    cacheMap.delete('/api/tournaments');
     res.json({ success: true, message: 'Tournament added', data: data[0] });
   } catch (error) {
     console.error('Error adding tournament:', error);
@@ -2266,6 +2267,7 @@ app.put('/api/admin/tournaments/:id', requireAdminRole, async (req, res) => {
       return res.status(404).json({ error: 'Tournament not found' });
     }
 
+    cacheMap.delete('/api/tournaments');
     res.json({ success: true, message: 'Tournament updated', data: data[0] });
   } catch (error) {
     console.error('Error updating tournament:', error);
@@ -2287,6 +2289,7 @@ app.delete('/api/admin/tournaments/:id', requireAdminRole, async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    cacheMap.delete('/api/tournaments');
     res.json({ success: true, message: 'Tournament deleted' });
   } catch (error) {
     console.error('Error deleting tournament:', error);
@@ -3673,10 +3676,26 @@ app.use((req, res, next) => {
 });
 
 // --- Start server ---
-expireMemberships().catch(error => console.error('Failed to expire memberships:', error));
-const membershipExpiryInterval = setInterval(() => {
-  expireMemberships().catch(error => console.error('Failed to expire memberships:', error));
-}, 60 * 60 * 1000);
-membershipExpiryInterval.unref();
+const membershipExpiryIntervalMs = 60 * 60 * 1000;
+const membershipExpiryMaxRetryMs = 15 * 60 * 1000;
+let membershipExpiryRetryMs = 60 * 1000;
+
+async function scheduleMembershipExpiry() {
+  let nextRunIn;
+  try {
+    await expireMemberships();
+    membershipExpiryRetryMs = 60 * 1000;
+    nextRunIn = membershipExpiryIntervalMs;
+  } catch (error) {
+    console.error('Failed to expire memberships; retrying with backoff:', error);
+    nextRunIn = membershipExpiryRetryMs;
+    membershipExpiryRetryMs = Math.min(membershipExpiryRetryMs * 2, membershipExpiryMaxRetryMs);
+  }
+
+  const timer = setTimeout(scheduleMembershipExpiry, nextRunIn);
+  timer.unref();
+}
+
+scheduleMembershipExpiry();
 
 app.listen(PORT, () => console.log(`Taigour E-Sports server running on http://0.0.0.0:${PORT}`));

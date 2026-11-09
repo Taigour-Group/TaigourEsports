@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import LegalScene3D from '../components/LegalScene3D.jsx';
+import LegalBackdrop from '../components/LegalBackdrop.jsx';
 import ShinyText from '../components/ReactBits/ShinyText.jsx';
 import BlurText from '../components/ReactBits/BlurText.jsx';
 
@@ -49,7 +49,7 @@ const LegalLayout = ({ eyebrow, title, lastUpdated, readingTime, intro, sections
       {/* Hero */}
       <div className="relative overflow-hidden border-b border-white/5">
         <div className="absolute inset-0 pointer-events-none opacity-70">
-          <LegalScene3D className="w-full h-full" />
+          <LegalBackdrop className="w-full h-full" />
         </div>
         <div
           className="absolute inset-0 pointer-events-none"
@@ -98,7 +98,7 @@ const LegalLayout = ({ eyebrow, title, lastUpdated, readingTime, intro, sections
       </div>
 
       {/* Mobile TOC toggle */}
-      <div className="lg:hidden sticky top-0 z-20 bg-bg-dark/95 backdrop-blur border-b border-white/5">
+      <div className="lg:hidden sticky top-0 z-20 bg-bg-dark border-b border-white/5">
         <button
           onClick={() => setTocOpen((v) => !v)}
           className="w-full flex items-center justify-between px-4 py-3.5 text-left"

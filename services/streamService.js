@@ -5,7 +5,9 @@ const VIEWER_HEARTBEAT_MS = 30000;
 export function getVisitorId() {
   let id = localStorage.getItem(VISITOR_KEY);
   if (!id) {
-    id = crypto.randomUUID();
+    id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `visitor-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
     localStorage.setItem(VISITOR_KEY, id);
   }
   return id;

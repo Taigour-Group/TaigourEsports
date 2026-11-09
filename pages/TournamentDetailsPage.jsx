@@ -1,14 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CountdownTimer, FeeTooltip } from './TournamentsPage';
 import TeamRegistrationForm from '../components/TeamRegistrationForm.jsx';
 import { dbService } from '../services/dbService.js';
 import ErrorBox from '../components/ErrorBox.jsx';
-import FadeContent from '../components/ReactBits/FadeContent';
-import BlurText from '../components/ReactBits/BlurText';
-import ShinyText from '../components/ReactBits/ShinyText';
+import CountUpNumber from '../components/CountUpNumber.jsx';
 
 const parseDateAtStartOfDay = (dateValue) => {
   if (!dateValue) return null;
@@ -47,8 +45,7 @@ const formatDateLabel = (dateValue) => {
 
 const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const tournament = tournaments.find(t => t.id === id);
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -61,9 +58,18 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
 
   const touchStart = useRef(null);
   const touchEnd = useRef(null);
+  const pollTimeoutRef = useRef(null);
+  const toastTimeoutRef = useRef(null);
+  const registrationAttemptRef = useRef(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => () => {
+    registrationAttemptRef.current += 1;
+    window.clearTimeout(pollTimeoutRef.current);
+    window.clearTimeout(toastTimeoutRef.current);
   }, []);
 
   if (!tournament) {
@@ -90,8 +96,14 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
   const handleRegistrationSubmit = async (formData) => {
     if (!canRegister || isSubmitting) return;
 
+    registrationAttemptRef.current += 1;
+    const attemptId = registrationAttemptRef.current;
     setIsSubmitting(true);
-    setQueueStatus({ status: 'uploading', message: 'Encrypting and uploading dossiers...' });
+    const hasRegistrationImages = Boolean(formData.teamLogo || formData.players.some((player) => player.citizenshipPhoto));
+    setQueueStatus({
+      status: 'uploading',
+      message: hasRegistrationImages ? 'Uploading team and player images...' : 'Preparing your team roster...'
+    });
 
     // Pre-check balance when entry fee is required to avoid wasting uploads
     try {
@@ -106,6 +118,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
         }
 
         const balRes = await fetch(`/api/balance/${user.id}`);
+        if (registrationAttemptRef.current !== attemptId) return;
         if (!balRes.ok) {
           console.error('Failed to fetch balance for pre-check');
           setErrorBox('Unable to verify wallet balance. Please try again later.');
@@ -115,6 +128,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
           return;
         }
         const balData = await balRes.json();
+        if (registrationAttemptRef.current !== attemptId) return;
         const available = Number(balData.balance ?? balData.available_balance ?? 0);
         if (available < fee) {
           setErrorBox(`Insufficient balance. Entry fee: ${fee} TGC. Your wallet: ${available} TGC.`);
@@ -125,6 +139,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
         }
       }
     } catch (e) {
+      if (registrationAttemptRef.current !== attemptId) return;
       console.error('Pre-check failed', e);
       setErrorBox('Unable to verify balance. Try again later.');
       setIsSubmitting(false);
@@ -134,16 +149,17 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
     }
 
     try {
-      // 1. Upload files if provided
+      const uploadTimestamp = Date.now();
       let teamLogoUrl = null;
       if (formData.teamLogo) {
-        teamLogoUrl = await dbService.uploadFile('team-logos', `team_${Date.now()}_${formData.teamLogo.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`, formData.teamLogo);
+        teamLogoUrl = await dbService.uploadFile('team-logos', `team_${uploadTimestamp}_${formData.teamLogo.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`, formData.teamLogo);
       }
+      if (registrationAttemptRef.current !== attemptId) return;
 
-      const uploadedPlayers = await Promise.all(formData.players.map(async (player) => {
+      const uploadedPlayers = await Promise.all(formData.players.map(async (player, index) => {
         let photoUrl = null;
         if (player.citizenshipPhoto) {
-          photoUrl = await dbService.uploadFile('citizenship-photos', `player_${Date.now()}_${player.citizenshipPhoto.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`, player.citizenshipPhoto);
+          photoUrl = await dbService.uploadFile('citizenship-photos', `player_${uploadTimestamp}_${index + 1}_${player.citizenshipPhoto.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`, player.citizenshipPhoto);
         }
         return {
           player_name: player.fullName,
@@ -151,6 +167,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
           player_citizenship_photo: photoUrl
         };
       }));
+      if (registrationAttemptRef.current !== attemptId) return;
 
       setQueueStatus({ status: 'queuing', message: 'Entering secure registration queue...' });
 
@@ -170,72 +187,76 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
         })
       });
 
+      if (registrationAttemptRef.current !== attemptId) return;
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to enter queue');
       }
 
       const { ticket_id } = await response.json();
+      if (!ticket_id) throw new Error('Registration queue did not return a tracking ticket.');
 
-      // 3. Poll for Status
       setQueueStatus({ status: 'queued', message: 'Awaiting deployment clearance...' });
-
-      const pollInterval = setInterval(async () => {
+      const pollRegistrationStatus = async () => {
+        if (registrationAttemptRef.current !== attemptId) return;
         try {
           const statusRes = await fetch(`/api/registration-status/${ticket_id}`);
-          if (!statusRes.ok) return; // Keep trying on network blips
+          if (!statusRes.ok) throw new Error(`Queue status returned ${statusRes.status}`);
 
           const statusData = await statusRes.json();
+          if (registrationAttemptRef.current !== attemptId) return;
 
           if (statusData.status === 'processing') {
             setQueueStatus({ status: 'processing', message: 'Finalizing registration...' });
           } else if (statusData.status === 'success') {
-            clearInterval(pollInterval);
-            onRegister();
+            window.clearTimeout(pollTimeoutRef.current);
             setRegistrationSuccess(true);
             setQueueStatus(null);
+            setIsSubmitting(false);
             setShowToast(true);
-            setTimeout(() => {
+            Promise.resolve().then(onRegister).catch((refreshError) => {
+              console.error('Registration completed, but refreshing registration data failed:', refreshError);
+            });
+            toastTimeoutRef.current = window.setTimeout(() => {
               setShowToast(false);
               closeModals();
             }, 3000);
+            return;
           } else if (statusData.status === 'failed') {
-            clearInterval(pollInterval);
-            // Surface worker error to UI
             const msg = statusData.error || 'Registration failed during processing';
             setErrorBox(msg);
-            setIsSubmitting(false);
-            setQueueStatus(null);
-            // stop polling
+            closeModals();
             return;
           }
         } catch (pollErr) {
+          if (registrationAttemptRef.current !== attemptId) return;
           console.error('Polling error:', pollErr);
-          // Keep polling on transient errors, let the user cancel if needed
         }
-      }, 1500); // Check every 1.5s
-
-      // Store interval ID in a ref to clean up if modal is closed early
-      if (!window.pollIntervals) window.pollIntervals = [];
-      window.pollIntervals.push(pollInterval);
+        if (registrationAttemptRef.current === attemptId) {
+          pollTimeoutRef.current = window.setTimeout(pollRegistrationStatus, 1500);
+        }
+      };
+      pollRegistrationStatus();
 
     } catch (error) {
+      if (registrationAttemptRef.current !== attemptId) return;
       console.error('Registration failed:', error);
       setErrorBox(`Registration error: ${error.message}`);
-      setIsSubmitting(false);
-      setQueueStatus(null);
+      closeModals();
     }
   };
 
   const closeModals = () => {
-    if (window.pollIntervals) {
-      window.pollIntervals.forEach(clearInterval);
-      window.pollIntervals = [];
-    }
+    registrationAttemptRef.current += 1;
+    window.clearTimeout(pollTimeoutRef.current);
+    window.clearTimeout(toastTimeoutRef.current);
+    pollTimeoutRef.current = null;
+    toastTimeoutRef.current = null;
     setShowRegModal(false);
     setRegistrationSuccess(false);
     setIsSubmitting(false);
     setQueueStatus(null);
+    setShowToast(false);
   };
 
   const handleModalTouchStart = (e) => {
@@ -314,7 +335,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
       )}
       {showToast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[2000] animate-slide-up w-[90%] max-w-sm">
-          <div className="bg-tertiary/20 backdrop-blur-xl border border-tertiary/50 px-6 py-4 rounded-2xl shadow-[0_0_30px_rgba(0,255,128,0.3)] flex items-center gap-4">
+          <div className="bg-[#09251a] border border-tertiary/50 px-6 py-4 rounded-2xl shadow-[0_0_30px_rgba(0,255,128,0.3)] flex items-center gap-4">
             <div className="w-8 h-8 bg-tertiary rounded-full flex items-center justify-center shrink-0">
               <i className="fas fa-check text-bg-dark text-sm"></i>
             </div>
@@ -364,7 +385,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
         </section>
 
         <section className="my-5 grid grid-cols-2 overflow-hidden rounded-xl border border-cyann bg-[#061a2b] md:grid-cols-4">
-          {stats.map((stat, index) => <div key={stat.label} className={`flex items-center gap-3 p-4 md:p-5 ${index < stats.length - 1 ? 'border-b border-cyann md:rounded-xl md:border-b-0 md:border-r' : ''} ${index === 1 ? 'border-r md:border-r' : ''}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyann/50 bg-cyan-500/10 text-lg text-cyan-300"><i className={`fas ${stat.icon}`} /></span><span><small className="block text-[8px] font-bold uppercase tracking-widest text-cyan-400/70">{stat.label}</small><strong className="block text-base uppercase text-slate-100 md:text-lg">{stat.value}</strong></span></div>)}
+          {stats.map((stat, index) => <div key={stat.label} className={`flex items-center gap-3 p-4 md:p-5 ${index < stats.length - 1 ? 'border-b border-cyann md:rounded-xl md:border-b-0 md:border-r' : ''} ${index === 1 ? 'border-r md:border-r' : ''}`}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyann/50 bg-cyan-500/10 text-lg text-cyan-300"><i className={`fas ${stat.icon}`} /></span><span><small className="block text-[8px] font-bold uppercase tracking-widest text-cyan-400/70">{stat.label}</small><strong className="block text-base uppercase tabular-nums text-slate-100 md:text-lg">{index < 3 ? <CountUpNumber value={stat.value} /> : stat.value}</strong></span></div>)}
         </section>
 
         <section className="grid gap-2 lg:grid-cols-[220px_minmax(0,1fr)]">
@@ -392,7 +413,7 @@ const TournamentDetailsPage = ({ tournaments, onRegister, registrations }) => {
           onTouchMove={handleModalTouchMove}
           onTouchEnd={handleModalTouchEnd}
         >
-          <div className="fixed inset-0 bg-bg-dark/95 backdrop-blur-md" onClick={closeModals}></div>
+          <div className="fixed inset-0 bg-bg-dark/95" onClick={closeModals}></div>
           <div className="relative w-full max-w-xl glass p-6 md:p-12 rounded-xl border border-primary/30 shadow-[0_0_100px_rgba(0,212,255,0.1)] my-auto animate-fade-in overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-6 flex items-center justify-center opacity-30 md:hidden">
               <div className="w-12 h-1 bg-white/20 rounded-full"></div>

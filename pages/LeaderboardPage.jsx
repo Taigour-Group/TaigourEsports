@@ -2,7 +2,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import FadeContent from '../components/ReactBits/FadeContent';
 
-const heroImage = 'https://res.cloudinary.com/dkoirxf41/image/upload/v1790498570/Teal_Battlefield_Lion_Crest_Banner_sdlnat.png';
 const games = [
   { id: 'freefire', label: 'Free Fire' },
   { id: 'pubg', label: 'PUBG' },
@@ -54,34 +53,28 @@ const LeaderboardPage = ({ leaderboard = [] }) => {
 
   return (
     <div
-      className="min-h-screen bg-[#030a10] pb-20 text-white md:pb-12"
+      className="leaderboard-page min-h-screen bg-[#030a10] pb-20 text-white md:pb-12"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <section className="relative isolate flex min-h-[260px] items-end overflow-hidden border-b border-cyan-300/20 pt-16 md:min-h-[205px] md:pt-10">
-        <img src={heroImage} alt="Esports competitor in a mountain arena" className="absolute inset-0 -z-20 h-full w-full object-cover object-[62%_center]" />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,9,15,.96)_0%,rgba(2,9,15,.78)_43%,rgba(2,9,15,.12)_100%)]" />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(0deg,#030a10_0%,transparent_38%,rgba(1,8,14,.22)_100%)]" />
-        <div className="container mx-auto w-full max-w-7xl px-5 pb-7 md:px-10 md:pb-8">
-          <p className="mb-3 flex items-center gap-3 font-space text-[10px] font-bold uppercase tracking-[0.42em] text-cyan md:text-xs">
-            <span className="h-px w-8 bg-cyan" />Elite Rank Standings
+      <header className="border-b border-cyan-300/20 bg-[#030a10] px-5 pb-5 pt-24 md:px-10 md:pb-6 md:pt-32">
+        <div className="mx-auto max-w-7xl">
+          <p className="mb-2 flex items-center gap-3 font-space text-[9px] font-bold uppercase tracking-[0.3em] text-cyan md:text-[10px]">
+            <span className="h-px w-6 bg-cyan" />Elite Rank Standings
           </p>
-          <h1 className="whitespace-nowrap font-space text-4xl font-black uppercase leading-none text-white sm:text-5xl md:text-[58px]">
+          <h1 className="font-space text-2xl font-black uppercase leading-tight text-white sm:text-3xl md:text-4xl">
             Hall of <span className="inline-block -skew-x-6 text-cyan">Fame</span>
           </h1>
-          <p className="mt-2 max-w-xl font-space text-[10px] font-bold uppercase text-slate-100 md:text-xs">
-            The top teams. The legends. The Taigour elite.
-          </p>
-          <p className="mt-2 max-w-md text-[10px] leading-[1.45] text-slate-300 md:text-xs">
-            Discover the best squads in the Taigour E-sports community.<br />These teams have earned their place in the Hall of Fame through skill, consistency and dominance.
+          <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-400 sm:text-sm">
+            Discover the top teams in the Taigour E-sports community.
           </p>
         </div>
-      </section>
+      </header>
 
-      <section className="relative overflow-hidden bg-[#06111a]" style={{ backgroundImage: `linear-gradient(rgba(3, 10, 16, .82), rgba(3, 10, 16, .96)), url(${heroImage})`, backgroundPosition: 'center 58%', backgroundSize: 'cover' }}>
+      <section className="relative overflow-hidden bg-[#06111a]">
         <div className="container relative mx-auto max-w-7xl px-4 md:px-8">
-          <FadeContent blur duration={700} easing="ease-out" initialOpacity={0}>
+          <FadeContent duration={700} easing="ease-out" initialOpacity={0}>
             <div className="flex flex-col gap-3 border-b border-cyan-300/10 py-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex w-full gap-2 rounded sm:w-auto" role="tablist" aria-label="Choose game">
                 {games.map((game) => (

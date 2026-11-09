@@ -309,28 +309,22 @@ const StreamsPage = ({ streams }) => {
   };
 
   return (
-    <div className="pt-20 md:pt-28 pb-20 md:pb-24 bg-bg-dark min-h-screen relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[150px] rounded-full"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-pink/10 blur-[150px] rounded-full"></div>
-      </div>
-
+    <div className="streams-page pt-20 md:pt-28 pb-20 md:pb-24 bg-bg-dark min-h-screen relative overflow-hidden">
       <div className="container mx-auto px-3 md:px-4 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-start">
 
           <div className="lg:col-span-8 space-y-4 md:space-y-6">
             <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-pink/20 to-primary/20 rounded-2xl md:rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
               <div className="relative aspect-video bg-black rounded-2xl md:rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
                 {activeStream ? (
                   <>
                     {activeStream.islive && (
                         <div className="absolute top-2 md:top-6 left-2 md:left-6 z-20 flex flex-col sm:flex-row items-start sm:items-center gap-2 md:gap-3">
-                            <div className="bg-red-600/90 backdrop-blur-xl text-white px-2 md:px-4 py-1 md:py-1.5 rounded-full flex items-center gap-1.5 md:gap-2 border border-white/20 shadow-lg pointer-events-none text-[8px] md:text-[10px]">
+                            <div className="bg-red-700 text-white px-2 md:px-4 py-1 md:py-1.5 rounded-full flex items-center gap-1.5 md:gap-2 border border-white/20 shadow-lg pointer-events-none text-[8px] md:text-[10px]">
                                 <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
                                 <span className="font-orbitron font-black uppercase tracking-widest">LIVE</span>
                             </div>
-                            <div className="bg-black/60 backdrop-blur-xl text-white/70 px-2 md:px-4 py-1 md:py-1.5 rounded-full border border-white/10 text-[8px] md:text-[10px] font-orbitron font-bold uppercase tracking-widest">
+                            <div className="bg-black/90 text-white/70 px-2 md:px-4 py-1 md:py-1.5 rounded-full border border-white/10 text-[8px] md:text-[10px] font-orbitron font-bold uppercase tracking-widest">
                                 <i className="fa-solid fa-eye mr-1 md:mr-2 text-primary"></i> {viewers.toLocaleString()}
                             </div>
                         </div>
@@ -363,9 +357,9 @@ const StreamsPage = ({ streams }) => {
                <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-8">
                   <div className="flex-1">
                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="px-2 md:px-3 py-1 bg-primary/10 border border-primary/30 rounded text-primary font-orbitron font-black text-[8px] md:text-[9px] uppercase tracking-widest">COMPETITIVE</span>
+                        <span className="px-2 md:px-3 py-1 bg-primary/10 border border-primary/30 rounded text-primary font-orbitron font-black text-[9px] md:text-[10px] uppercase tracking-widest">COMPETITIVE</span>
                         {activeStream?.islive && (
-                          <span className="px-2 md:px-3 py-1 bg-red-600/20 border border-red-500/30 rounded text-red-400 font-orbitron font-black text-[8px] md:text-[9px] uppercase tracking-widest">LIVE NOW</span>
+                          <span className="px-2 md:px-3 py-1 bg-red-600/20 border border-red-500/30 rounded text-red-400 font-orbitron font-black text-[9px] md:text-[10px] uppercase tracking-widest">LIVE NOW</span>
                         )}
                      </div>
                      <h1 className="text-xl sm:text-2xl md:text-4xl font-orbitron font-black text-white uppercase tracking-tight leading-tight break-words">{activeStream?.title || 'BROADCAST OFFLINE'}</h1>
@@ -377,7 +371,7 @@ const StreamsPage = ({ streams }) => {
                         className={`flex flex-col items-center justify-center border rounded-xl md:rounded-2xl w-14 h-14 md:w-20 md:h-20 transition-all group disabled:opacity-50 ${hasLiked ? 'bg-primary/20 border-primary shadow-[0_0_15px_rgba(0,212,255,0.3)]' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                       >
                         <i className={`fa-solid fa-thumbs-up mb-1 md:mb-2 text-base md:text-xl group-hover:scale-110 transition-transform ${hasLiked ? 'text-primary' : 'text-gray-500'}`}></i>
-                        <span className={`text-[8px] md:text-[10px] font-orbitron font-black ${hasLiked ? 'text-primary' : 'text-white'}`}>{likes.toLocaleString()}</span>
+                        <span className={`text-[9px] md:text-[10px] font-orbitron font-black ${hasLiked ? 'text-primary' : 'text-white'}`}>{likes.toLocaleString()}</span>
                      </button>
                      <button
                         onClick={handleShareClick}
@@ -385,7 +379,7 @@ const StreamsPage = ({ streams }) => {
                         className="flex flex-col items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl md:rounded-2xl w-14 h-14 md:w-20 md:h-20 transition-all group disabled:opacity-50 relative"
                       >
                         <i className="fa-solid fa-share-nodes text-accent mb-1 md:mb-2 text-base md:text-xl group-hover:scale-110 transition-transform"></i>
-                        <span className="text-[8px] md:text-[10px] font-orbitron font-black text-white">{shares > 0 ? shares.toLocaleString() : 'SHARE'}</span>
+                        <span className="text-[9px] md:text-[10px] font-orbitron font-black text-white">{shares > 0 ? shares.toLocaleString() : 'SHARE'}</span>
                         {shareFeedback && (
                           <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] text-primary font-orbitron whitespace-nowrap">{shareFeedback}</span>
                         )}
@@ -396,27 +390,26 @@ const StreamsPage = ({ streams }) => {
 
             <div className="space-y-3 md:space-y-6">
                <div className="flex justify-between items-center px-2">
-                  <h4 className="font-orbitron font-black text-white text-[9px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] flex items-center gap-3">
-                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shadow-[0_0_8px_#00d4ff]"></span> ARCHIVED SECTORS
+                  <h4 className="font-orbitron font-black text-white text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.3em] flex items-center gap-3">
+                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shadow-[0_0_8px_#00d4ff]"></span> MORE STREAMS
                   </h4>
-                  <Link to="/tournaments" className="text-gray-500 hover:text-primary font-orbitron font-black text-[8px] md:text-[9px] uppercase tracking-widest transition-colors">SEE ALL</Link>
                </div>
                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-6">
                   {streams.filter(s => s.id !== activeStream?.id).map(stream => (
-                      <div key={stream.id} className="group cursor-pointer" onClick={() => selectStream(stream)}>
+                      <button key={stream.id} type="button" aria-label={`Watch stream: ${stream.title}`} className="group min-w-0 w-full text-left" onClick={() => selectStream(stream)}>
                           <div className="relative aspect-video rounded-lg md:rounded-xl overflow-hidden border border-white/5 mb-1.5 md:mb-3">
                               <img src={`https://img.youtube.com/vi/${stream.youtubeid}/hqdefault.jpg`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={stream.title} />
                               <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-all flex items-center justify-center">
-                                 <div className="w-6 h-6 md:w-10 md:h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all">
+                                 <div className="w-8 h-8 md:w-10 md:h-10 bg-black/70 rounded-full flex items-center justify-center border border-white/20 opacity-100 md:opacity-0 md:group-hover:opacity-100 scale-100 md:scale-50 md:group-hover:scale-100 transition-all">
                                     <i className="fa-solid fa-play text-white text-[8px] md:text-sm"></i>
                                  </div>
                               </div>
                               {stream.islive && (
-                                 <span className="absolute top-1 left-1 bg-red-600 text-white text-[6px] md:text-[8px] font-black px-1 md:px-1.5 py-0.5 rounded-full uppercase tracking-widest border border-white/10">LIVE</span>
+                                 <span className="absolute top-1 left-1 bg-red-600 text-white text-[8px] md:text-[9px] font-black px-1.5 md:px-2 py-0.5 rounded-full uppercase tracking-widest border border-white/10">LIVE</span>
                               )}
                           </div>
-                          <h4 className="text-white font-orbitron font-bold text-[8px] md:text-[11px] line-clamp-1 group-hover:text-primary transition-colors leading-snug">{stream.title}</h4>
-                      </div>
+                          <h4 className="text-white font-orbitron font-bold text-[10px] md:text-xs line-clamp-2 group-hover:text-primary transition-colors leading-snug">{stream.title}</h4>
+                      </button>
                   ))}
                </div>
             </div>
@@ -427,8 +420,8 @@ const StreamsPage = ({ streams }) => {
               <div className="p-3 md:p-5 border-b border-white/5 flex items-center justify-between bg-white/2 shrink-0">
                 <div className="flex items-center gap-3 min-w-0">
                     <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_8px_#00d4ff]"></div>
-                    <h3 className="text-primary font-orbitron font-black uppercase tracking-widest text-[8px] md:text-[10px] truncate">Neural Feed</h3>
-                    <span className="text-[7px] text-gray-600 font-mono truncate">as {myUsername}</span>
+                    <h3 className="text-primary font-orbitron font-black uppercase tracking-widest text-[9px] md:text-[10px] truncate">Live Chat</h3>
+                    <span className="text-[8px] md:text-[9px] text-gray-600 font-mono truncate">as {myUsername}</span>
                 </div>
                 {isAdmin && (
                   <button onClick={clearChat} className="text-[7px] md:text-[8px] font-orbitron font-black text-pink hover:text-white transition-all flex items-center gap-1.5 md:gap-2 uppercase tracking-widest border border-pink/30 px-2 md:px-3 py-1 rounded-full hover:bg-pink/10 flex-shrink-0">
@@ -491,10 +484,10 @@ const StreamsPage = ({ streams }) => {
                     <div className={`relative ${msg.isSystem ? 'w-full' : ''}`}>
                        <div className={`px-3 md:px-4 py-2 md:py-2.5 rounded-lg md:rounded-2xl font-rajdhani text-xs md:text-sm break-words transition-all ${
                           msg.isSystem
-                            ? 'bg-primary/5 border border-primary/10 text-primary/60 italic text-[8px] md:text-[10px] uppercase tracking-widest'
+                          ? 'chat-message-system bg-primary/5 border border-primary/10 text-primary/60 italic text-[8px] md:text-[10px] uppercase tracking-widest'
                             : msg.username === myUsername
-                                ? 'bg-primary/10 border border-primary/20 text-white rounded-tr-none shadow-[0_4px_15px_rgba(0,212,255,0.1)]'
-                                : 'bg-white/5 border border-white/5 text-gray-300 rounded-tl-none'
+                              ? 'chat-message-own bg-primary/10 border border-primary/20 text-white rounded-tr-none shadow-[0_4px_15px_rgba(0,212,255,0.1)]'
+                              : 'chat-message-other bg-white/5 border border-white/5 text-gray-300 rounded-tl-none'
                         }`}>
                           {renderMessageText(msg.text)}
                        </div>
@@ -531,7 +524,7 @@ const StreamsPage = ({ streams }) => {
                 <div className="sticky bottom-0 left-0 w-full h-8 bg-gradient-to-t from-bg-dark/20 to-transparent pointer-events-none z-10 -mb-5"></div>
               </div>
 
-              <div className="p-3 md:p-5 bg-white/2 border-t border-white/5 backdrop-blur-xl shrink-0">
+              <div className="p-3 md:p-5 bg-[#0b0f14] border-t border-white/5 shrink-0">
                 {chatError && (
                   <p className="text-pink text-[9px] font-orbitron mb-2 uppercase tracking-wider">{chatError}</p>
                 )}

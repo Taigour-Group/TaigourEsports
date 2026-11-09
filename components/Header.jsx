@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { balanceService } from '../services/balanceService';
 import TgcCoin from './TgcCoin.jsx';
 
-const Header = () => {
+const Header = ({ theme, onToggleTheme }) => {
   const { user, profile, loading, loginWithGoogle, loginWithApple, loginWithFacebook, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -80,7 +80,6 @@ const Header = () => {
     { name: 'Tournaments', path: '/tournaments', icon: 'fa-crosshairs' },
     { name: 'Games', path: '/games', icon: 'fa-gamepad' },
     { name: 'Rankings', path: '/leaderboard', icon: 'fa-crown' },
-    { name: 'News', path: '/news', icon: 'fa-newspaper' },
     { name: 'Live', path: '/streams', icon: 'fa-bolt' }
   ];
 
@@ -107,6 +106,19 @@ const Header = () => {
     return null;
   };
 
+  const themeToggle = (
+    <button
+      type="button"
+      onClick={onToggleTheme}
+      className="grid h-9 w-9 place-items-center rounded-md border border-white/15 text-cyan transition-colors hover:border-cyan"
+      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      aria-pressed={theme === 'light'}
+      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+    >
+      <i className={`fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'} text-sm`} aria-hidden="true" />
+    </button>
+  );
+
   return (
     <>
       {/* ─── Desktop Top Bar ─── */}
@@ -115,8 +127,6 @@ const Header = () => {
         className="fixed top-0 z-[100] hidden w-full py-2 transition-all duration-300 md:block"
         style={{
           background: 'rgba(3, 11, 18, 0.96)',
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}
       >
@@ -166,6 +176,7 @@ const Header = () => {
           {/* ─── Right Side: User / Auth ─── */}
           <div className="relative z-10 flex shrink-0 items-center gap-2">
             <Link to="/tournaments" className="hidden rounded-2xl border border-cyan px-3 py-2 font-space text-[10px] font-bold text-cyan transition-colors hover:bg-cyan hover:text-[#041018] md:inline-flex">Join Now</Link>
+            {themeToggle}
             {loading ? (
               <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>
             ) : user ? (
@@ -210,8 +221,7 @@ const Header = () => {
                   <div
                     className="absolute right-0 top-full mt-2 w-52 rounded-xl overflow-hidden animate-fade-in"
                     style={{
-                      background: 'rgba(15, 15, 19, 0.95)',
-                      backdropFilter: 'blur(20px)',
+                      background: 'rgba(15, 15, 19, 0.99)',
                       border: '1px solid rgba(255,255,255,0.08)',
                       boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.05)',
                     }}
@@ -260,8 +270,8 @@ const Header = () => {
 
       {/* ─── Mobile Top Bar (minimal, just logo) ─── */}
       <nav
-        className={`fixed top-0 w-full z-[100] transition-all duration-300 md:hidden ${
-          isScrolled ? 'bg-bg-dark/80 backdrop-blur-lg border-b border-primary/10 py-3 shadow-2xl' : 'bg-transparent py-5'
+        className={`site-header-mobile fixed top-0 w-full z-[100] transition-all duration-300 md:hidden ${
+          isScrolled ? 'bg-[#030b12]/98 border-b border-primary/10 py-3 shadow-xl' : 'bg-transparent py-5'
         }`}
       >
         <div className="container mx-auto px-4 flex justify-between items-center">
@@ -272,7 +282,6 @@ const Header = () => {
                 className="w-10 h-10 group-hover:rotate-[360deg] transition-transform duration-1000"
                 alt="Taigour"
               />
-              <div className="absolute -inset-1 bg-primary/20 blur-lg rounded-full animate-pulse"></div>
             </div>
             <div className="flex flex-col">
               <span className="font-orbitron font-black text-white text-lg tracking-tighter leading-none flex items-center gap-1.5">
@@ -284,6 +293,7 @@ const Header = () => {
 
           {/* Mobile Auth Menu */}
           <div className="flex items-center gap-2">
+            {themeToggle}
             {loading ? (
               <div className="w-6 h-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>
             ) : user ? (

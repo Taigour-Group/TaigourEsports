@@ -48,8 +48,8 @@ const Preloader = () => {
         {/* Scanlines Overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_4px,3px_100%]"></div>
         
-        {/* Glowing Radial Background */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 blur-[120px] rounded-full animate-pulse"></div>
+        {/* Static radial tint */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(0,212,255,0.06),transparent_70%)] rounded-full"></div>
         
         {/* Moving Grid lines */}
         <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"></div>
@@ -76,7 +76,6 @@ const Preloader = () => {
         <div className="text-center mb-10">
           <h3 className="font-orbitron font-black text-white text-3xl md:text-4xl tracking-[0.2em] mb-2 relative group">
             TAIGOUR<span className="text-primary">'</span>S
-            <div className="absolute -inset-1 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
           </h3>
           <div className="flex items-center justify-center gap-2">
             <span className="h-px w-8 bg-gradient-to-r from-transparent to-primary/40"></span>
@@ -106,7 +105,7 @@ const Preloader = () => {
                style={{ width: `${progress}%` }}
              >
                 {/* Highlight line */}
-                <div className="absolute top-0 right-0 w-8 h-full bg-white/40 blur-sm"></div>
+                <div className="absolute top-0 right-0 w-8 h-full bg-white/40"></div>
              </div>
           </div>
           

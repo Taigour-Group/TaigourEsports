@@ -4,8 +4,6 @@ import { Link } from 'react-router-dom';
 import { Tournament, GameType, Registration } from '../types.js';
 import FadeContent from '../components/ReactBits/FadeContent';
 
-const tournamentHeroImage = 'https://res.cloudinary.com/dkoirxf41/image/upload/v1790498570/Teal_Battlefield_Lion_Crest_Banner_sdlnat.png';
-
 const parseDateAtStartOfDay = (dateValue) => {
   if (!dateValue) return null;
   const parsed = new Date(dateValue);
@@ -107,7 +105,7 @@ export const CountdownTimer = ({ targetDate, status }) => {
   if (state.mode === 'timeLeft' && state.timeLeft) {
     const { d, h, m } = state.timeLeft;
     return (
-      <div className="flex gap-0.5 md:gap-1 items-center bg-navy/90 backdrop-blur-md px-2 md:px-3 py-1 md:py-1.5 rounded-md border border-white/10 shadow-sm">
+      <div className="flex gap-0.5 md:gap-1 items-center bg-navy px-2 md:px-3 py-1 md:py-1.5 rounded-md border border-white/10 shadow-sm">
         <div className="text-white font-space text-[8px] md:text-xs font-semibold">{d}d</div>
         <div className="text-gray-500 text-[8px]">:</div>
         <div className="text-white font-space text-[8px] md:text-xs font-semibold">{String(h).padStart(2, '0')}h</div>
@@ -173,16 +171,16 @@ export const TournamentCard = ({ t, registrationStatus, registrations = [] }) =>
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-cyann bg-[#06111c] transition-colors hover:border-cyan">
-      <div className="relative aspect-[16/10] overflow-hidden bg-[#07111a]">
+      <div data-image-backdrop="tournament-card-image" className="relative aspect-[16/10] overflow-hidden bg-[#07111a]">
         <img src={t.image} alt={`${t.game || 'Tournament'} artwork`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#06111c]/80 via-transparent to-black/15" />
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-cyan/70 bg-cyan px-2.5 py-1 text-[7px] font-bold uppercase tracking-wide text-[#041018] sm:text-[8px]">
+        <span className="absolute left-3 top-3 inline-flex max-w-[54%] items-center gap-1.5 truncate whitespace-nowrap rounded-full border border-cyan/70 bg-cyan px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#041018]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#041018]" />{statusLabel}
         </span>
-        <span className="absolute right-3 top-3 rounded border border-white/30 bg-black/55 px-2 py-1 font-space text-[9px] font-bold uppercase text-white">{gameLabel}</span>
+        <span className="absolute right-3 top-3 max-w-[40%] truncate whitespace-nowrap rounded border border-white/30 bg-black/55 px-2 py-1 font-space text-[9px] font-bold uppercase text-white">{gameLabel}</span>
       </div>
       <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5 sm:px-3.5 sm:pb-3.5">
-        <h3 className="line-clamp-1 min-h-5 font-space text-[10px] font-bold uppercase leading-tight text-white sm:text-sm">{t.title}</h3>
+        <h3 className="min-h-8 break-words font-space text-[13px] font-bold uppercase leading-tight text-white sm:min-h-5 sm:text-sm">{t.title}</h3>
         <p className="mt-1 inline-flex items-center gap-1.5 text-[8px] font-semibold uppercase tracking-wide text-cyan sm:text-[9px]">
           <i className={`fa-solid ${gameIcon}`} aria-hidden="true" />{gameLabel}
         </p>
@@ -190,23 +188,23 @@ export const TournamentCard = ({ t, registrationStatus, registrations = [] }) =>
           <div className="flex min-w-0 items-center gap-2 pr-2">
             <i className="fa-solid fa-trophy w-4 shrink-0 text-center text-sm text-cyan" aria-hidden="true" />
             <div className="min-w-0">
-              <span className="block text-[7px] font-semibold uppercase text-cyan sm:text-[8px]">Prize Pool</span>
-              <span className="block truncate font-space text-xs font-bold text-white sm:text-base">{t.prize || 'TBA'}</span>
+              <span className="block text-[9px] font-semibold uppercase text-cyan">Prize Pool</span>
+              <span className="block truncate font-space text-sm font-bold text-white sm:text-base">{t.prize || 'TBA'}</span>
             </div>
           </div>
           <div className="flex min-w-0 items-center gap-2 pl-2">
             <i className="fa-regular fa-calendar-days w-4 shrink-0 text-center text-sm text-cyan" aria-hidden="true" />
             <div className="min-w-0">
               <span className="block text-[7px] font-semibold uppercase text-cyan sm:text-[8px]">Date</span>
-              <span className="block truncate text-[8px] font-medium text-slate-200 sm:text-[10px]">{formatCardDate(t.date)}</span>
+              <span className="block break-words text-[10px] font-medium leading-tight text-slate-200">{formatCardDate(t.date)}</span>
             </div>
           </div>
         </div>
         <div className="mb-2 mt-2 flex items-center gap-2 text-cyan">
           <i className="fa-solid fa-users text-sm" aria-hidden="true" />
           <div className="min-w-0">
-            <span className="block text-[7px] font-semibold uppercase sm:text-[8px]">Participants</span>
-            <span className="block text-[9px] text-slate-200 sm:text-[10px]">{participantCount}{maxSlots ? ` / ${maxSlots}` : ''}</span>
+            <span className="block text-[9px] font-semibold uppercase">Participants</span>
+            <span className="block text-[11px] text-slate-200">{participantCount}{maxSlots ? ` / ${maxSlots}` : ''}</span>
           </div>
         </div>
         <Link to={`/tournament/${t.id}`} className="mt-auto flex min-h-9 items-center justify-center gap-2 rounded-md border border-cyan px-3 py-2 text-[10px] font-bold text-cyan transition-colors hover:bg-cyan hover:text-[#041018]">
@@ -276,22 +274,16 @@ const TournamentsPage = ({ tournaments, registrations }) => {
 
   return (
     <div 
-      className="pt-24 md:pt-32 pb-20 md:pb-24 min-h-screen bg-bg-dark"
+      className="pb-20 md:pb-24 min-h-screen bg-bg-dark"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <section className="relative isolate -mt-20 overflow-hidden border-b border-white/10 bg-[#071722] pt-20 md:-mt-24 md:pt-24">
-        <img src={tournamentHeroImage} alt="Esports arena ready for tournament play" className="absolute inset-0 -z-20 h-full w-full object-cover object-[58%_42%]" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#031018] via-[#031018]/80 to-[#031018]/15" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#061018] via-transparent to-[#061018]/20" />
-        <div className="container mx-auto max-w-7xl px-5 pb-8 pt-6 md:px-8 md:pb-10 md:pt-8">
-          <p className="mb-2 font-space text-[8px] font-bold uppercase tracking-[0.3em] text-cyan sm:text-[10px]">Compete / Win / Be Legendary</p>
-          <h1 className="font-space text-3xl font-black italic uppercase leading-[0.9] text-white sm:text-5xl md:text-7xl">Tournaments</h1>
-          <p className="mt-3 max-w-md text-[10px] font-semibold uppercase text-slate-200 sm:text-sm">Show your skills. Earn rewards. Rise to the top.</p>
-          <p className="mt-2 max-w-sm text-[10px] leading-relaxed text-slate-300 sm:text-xs">Join exciting tournaments and compete with the best from across the Taigour esports community.</p>
-        </div>
-      </section>
+      <header className="container mx-auto max-w-7xl px-4 pb-2 pt-24 md:px-8 md:pb-3 md:pt-32">
+        <p className="mb-1 font-space text-[9px] font-bold uppercase tracking-[0.25em] text-cyan sm:text-[10px]">Compete / Win / Be Legendary</p>
+        <h1 className="font-space text-2xl font-black uppercase leading-tight text-white sm:text-3xl md:text-4xl">Tournaments</h1>
+        <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-400 sm:text-sm">Show your skills, earn rewards, and compete with the Taigour esports community.</p>
+      </header>
 
       <div className="container mx-auto max-w-7xl px-4 md:px-8">
         <nav aria-label="Filter tournaments by game" className="flex flex-wrap justify-center gap-2 py-6 md:gap-3 md:py-8">
@@ -308,8 +300,8 @@ const TournamentsPage = ({ tournaments, registrations }) => {
           ))}
         </nav>
 
-        <FadeContent blur={true} duration={1000} easing="ease-out" initialOpacity={0}>
-          <div className="grid grid-cols-2 gap-3 pb-10 sm:gap-4 md:grid-cols-4 md:gap-5 md:pb-12">
+        <FadeContent duration={1000} easing="ease-out" initialOpacity={0}>
+          <div className="grid grid-cols-1 gap-4 pb-10 sm:grid-cols-2 sm:gap-4 md:grid-cols-4 md:gap-5 md:pb-12">
             {filtered.length > 0 ? filtered.map(t => (
               <TournamentCard key={t.id} t={t} registrations={registrations} registrationStatus={getRegistrationStatus(t)} />
             )) : (

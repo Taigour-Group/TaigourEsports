@@ -73,7 +73,7 @@ const OnboardingModal = () => {
     'text-gray-400 font-orbitron text-[10px] uppercase tracking-widest block';
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 overflow-y-auto">
       {errorMsg && (
         <ErrorBox message={errorMsg} onClose={() => setErrorMsg('')} type="error" />
       )}
@@ -83,7 +83,6 @@ const OnboardingModal = () => {
           background: 'linear-gradient(135deg, rgba(15, 15, 19, 0.97) 0%, rgba(7, 7, 9, 0.99) 100%)'
         }}
       >
-        <div className="absolute top-0 right-0 w-60 h-60 bg-primary/5 blur-[80px] rounded-full pointer-events-none"></div>
 
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-6">

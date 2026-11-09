@@ -48,7 +48,7 @@ const ErrorBox = ({ message, onClose, type = 'error' }) => {
       <button
         type="button"
         aria-label="Dismiss notification"
-        className="fixed inset-0 cursor-default bg-[#02070d]/80 backdrop-blur-sm"
+        className="fixed inset-0 cursor-default bg-[#02070d]/95"
         onClick={onClose}
       />
       <div
