@@ -52,6 +52,19 @@ class AuthService {
     }
   }
 
+  async signInWithEmail(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    });
+    return error ? { error } : { data };
+  }
+
+  async setPassword(password) {
+    const { data, error } = await supabase.auth.updateUser({ password });
+    return error ? { error } : { data };
+  }
+
   async signInWithApple() {
     // Note: For native Apple login, use @capacitor-community/apple-sign-in similarly
     const { data, error } = await supabase.auth.signInWithOAuth({

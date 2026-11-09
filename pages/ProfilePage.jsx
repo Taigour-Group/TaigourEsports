@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
 import PlayerBalance from '../components/PlayerBalance';
@@ -9,11 +9,27 @@ import ShinyText from '../components/ReactBits/ShinyText';
 import ErrorBox from '../components/ErrorBox.jsx';
 import CountUpNumber from '../components/CountUpNumber.jsx';
 
-const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
-  const { user, profile, loading, loginWithGoogle, logout, reloadProfile } = useAuth();
-  const navigate = useNavigate();
+const profileSections = [
+  { id: 'wallet', label: 'Wallet', desc: 'Balance and membership', icon: 'fa-wallet', title: 'Wallet' },
+  { id: 'deployments', label: 'Deployments', desc: 'Tournament entries', icon: 'fa-shield-halved', title: 'Deployments' },
+  { id: 'settings', label: 'Settings', desc: 'Account and player details', icon: 'fa-sliders', title: 'Settings' },
+  { id: 'achievements', label: 'Achievements', desc: 'Badges and rank rewards', icon: 'fa-medal', title: 'Achievements' },
+];
 
-  const [activeTab, setActiveTab] = useState('wallet');
+const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
+  const { user, profile, loading, loginWithGoogle, loginWithEmail, updateAccountPassword, logout, reloadProfile } = useAuth();
+
+  const [activeSection, setActiveSection] = useState(null);
+  const activeTab = activeSection || 'wallet';
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailAuthLoading, setEmailAuthLoading] = useState(false);
+  const [emailAuthError, setEmailAuthError] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
   const [formData, setFormData] = useState({
     full_name: '',
     age: '',
@@ -37,9 +53,56 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const handleEmailAuth = async (event) => {
+    event.preventDefault();
+    setEmailAuthLoading(true);
+    setEmailAuthError('');
+
+    try {
+      const result = await loginWithEmail(email, password);
+
+      if (result.error) {
+        setEmailAuthError(result.error.message || 'Email authentication failed. Please try again.');
+      }
+    } catch (error) {
+      setEmailAuthError(error.message || 'Email authentication failed. Please try again.');
+    } finally {
+      setEmailAuthLoading(false);
+    }
+  };
+
+  const handleSetPassword = async (event) => {
+    event.preventDefault();
+    setPasswordError('');
+    setPasswordMessage('');
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('The passwords do not match.');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const { error } = await updateAccountPassword(newPassword);
+      if (error) {
+        setPasswordError(error.message || 'Unable to set your password. Please try again.');
+      } else {
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordMessage('Password saved. You can now sign in with this account email and password.');
+      }
+    } catch (error) {
+      setPasswordError(error.message || 'Unable to set your password. Please try again.');
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    setSuccessMsg('');
+    setErrorMsg('');
+  }, [activeSection]);
 
   // Sync profile details with form inputs
   useEffect(() => {
@@ -137,7 +200,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
   // Not Logged In View
   if (!user) {
     return (
-      <div className="pt-32 pb-24 px-4 bg-bg-dark min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div className="profile-dashboard pt-32 pb-24 px-4 bg-bg-dark min-h-screen flex items-center justify-center relative overflow-hidden">
         <div
           className="glass p-8 md:p-12 rounded-2xl max-w-lg w-full text-center relative border border-primary/10"
           style={{ boxShadow: '0 0 50px rgba(0,212,255,0.05)' }}
@@ -167,6 +230,55 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
               <span>AUTHENTICATE WITH GOOGLE</span>
             </span>
           </button>
+
+          <div className="my-6 flex items-center gap-3 text-[10px] font-orbitron uppercase tracking-widest text-gray-500">
+            <span className="h-px flex-1 bg-white/10" />
+            <span>Or use email</span>
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
+
+          <form onSubmit={handleEmailAuth} className="space-y-3 text-left">
+            <label className="block text-left text-[10px] font-orbitron font-bold uppercase tracking-widest text-gray-400">
+              Email
+              <input
+                type="email"
+                name="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="mt-1.5 w-full rounded-md border border-white/10 bg-black/30 px-4 py-3 font-rajdhani text-sm normal-case tracking-normal text-white outline-none transition focus:border-primary"
+                placeholder="you@example.com"
+              />
+            </label>
+            <label className="block text-left text-[10px] font-orbitron font-bold uppercase tracking-widest text-gray-400">
+              Password
+              <input
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                minLength={6}
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="mt-1.5 w-full rounded-md border border-white/10 bg-black/30 px-4 py-3 font-rajdhani text-sm normal-case tracking-normal text-white outline-none transition focus:border-primary"
+                placeholder="Your account password"
+              />
+            </label>
+
+            {emailAuthError && <p role="alert" className="text-left text-sm text-red-400">{emailAuthError}</p>}
+
+            <button
+              type="submit"
+              disabled={emailAuthLoading}
+              className="w-full rounded-md border border-primary/40 bg-primary/10 px-4 py-3 font-orbitron text-xs font-black uppercase tracking-widest text-primary transition hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {emailAuthLoading ? 'Signing in...' : 'Sign in with email'}
+            </button>
+          </form>
+          <p className="mt-4 text-xs leading-relaxed text-gray-500">
+            To use your Google account with a password, sign in with Google first, then set a password under Profile Settings. This keeps both sign-in methods on the same account.
+          </p>
         </div>
       </div>
     );
@@ -256,7 +368,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
 
 
   return (
-    <div id="profile-dashboard" className="relative min-h-screen overflow-hidden bg-[#050d14] pb-16 pt-20 text-white md:pt-24">
+    <div id="profile-dashboard" className="profile-dashboard relative min-h-screen overflow-hidden bg-[#050d14] pb-16 pt-20 text-white md:pt-24">
       {errorMsg && (
         <ErrorBox message={errorMsg} onClose={() => setErrorMsg('')} type="error" />
       )}
@@ -265,46 +377,36 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
       )}
       <div className="container relative mx-auto max-w-7xl px-4 md:px-8">
 
+        {!activeSection && (
+        <>
         {/* ─── Profile Header / Hero ─── */}
-        <div className="relative mb-5 overflow-hidden rounded-lg border border-cyann bg-[#071722] p-5 md:p-8">
-          <div className="absolute inset-0 bg-[linear-gradient(105deg,rgba(4,15,23,.98)_0%,rgba(4,15,23,.92)_48%,rgba(4,15,23,.65)_100%)]" />
-          <img src="https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png" alt="" aria-hidden="true" className="pointer-events-none absolute -right-10 -top-24 hidden h-[390px] w-[390px] object-contain opacity-[0.09] md:block" />
-          <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-cyann to-transparent" />
-          <div className="relative z-10 flex flex-col items-center gap-5 sm:flex-row sm:items-start md:gap-6">
-            {/* Avatar block */}
-            <div className="relative">
-              {profile?.avatar_url || user.user_metadata?.avatar_url ? (
+        <section className="profile-identity-card mb-5 rounded-2xl border p-4 sm:p-5 md:p-6">
+          <div className="flex items-center gap-3 sm:gap-5">
+            <div className="profile-avatar relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-2xl border sm:h-20 sm:w-20">
+              <div className="profile-avatar-fallback absolute inset-0 grid place-items-center font-space text-2xl font-bold">
+                {(profile?.full_name || user.user_metadata?.full_name || user.email || 'P').charAt(0).toUpperCase()}
+              </div>
+              {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
                 <img
                   src={profile?.avatar_url || user.user_metadata?.avatar_url}
-                  className="h-24 w-24 rounded-lg border border-cyann object-cover shadow-[0_0_24px_rgba(0,212,255,.16)] md:h-28 md:w-28"
-                  alt="Avatar"
+                  className="profile-avatar-image absolute inset-0 h-full w-full object-cover"
+                  alt=""
+                  onError={(event) => { event.currentTarget.style.display = 'none'; }}
                 />
-              ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-cyann bg-cyan-400/10 font-orbitron text-3xl font-black text-cyan shadow-[0_0_24px_rgba(0,212,255,.16)] md:h-28 md:w-28">
-                  {profile?.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-                </div>
               )}
-              {/* Online pulse */}
-              <div
-                className="absolute -bottom-1 -right-2 flex items-center gap-1 rounded-sm border border-[#071722] bg-emerald-400 px-2 py-1 font-orbitron text-[8px] font-bold text-[#06110d]"
-                style={{ boxShadow: '0 0 10px #00ff80' }}
-              >
-                <span className="w-1.5 h-1.5 bg-dark rounded-full animate-ping"></span>
-                ACTIVE
-              </div>
+              <span className="profile-active-indicator absolute bottom-1 right-1 h-3 w-3 rounded-full border-2" aria-label="Active" />
             </div>
 
-            {/* Profile Info details */}
-            <div className="mt-1 min-w-0 flex-1 space-y-2 text-center sm:text-left">
-              <p className="font-space text-[9px] font-bold uppercase tracking-[0.24em] text-cyan">Player Profile</p>
-              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <h1 className="break-words font-space text-2xl font-black uppercase leading-tight text-white sm:text-3xl md:text-4xl">
+            <div className="min-w-0 flex-1">
+              <p className="profile-eyebrow text-[10px] font-bold uppercase tracking-[0.16em]">Player profile</p>
+              <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                <h1 className="truncate font-space text-lg font-black leading-tight sm:text-2xl">
                   {profile?.full_name || user.user_metadata?.full_name || 'Player One'}
                 </h1>
                 {profile?.verified === true && (
                   <svg
                     viewBox="0 0 24 24"
-                    className="h-5 w-5 shrink-0 text-cyan sm:h-6 sm:w-6"
+                    className="h-4 w-4 shrink-0 text-cyan sm:h-5 sm:w-5"
                     fill="currentColor"
                     role="img"
                     aria-label="Verified account"
@@ -314,50 +416,33 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                   </svg>
                 )}
               </div>
-              <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-rajdhani text-xs text-slate-300 sm:justify-start sm:text-sm">
-                <span className="break-all">{user.email}</span>
-                <span className="hidden text-cyan/50 sm:inline">/</span>
-                <span className="font-rajdhani text-xs uppercase text-slate-400">
-                  Age: {profile?.age || 'Unset'}
-                </span>
-              </p>
-
-              {/* Player ID */}
-
-              <div className="mt-2 flex items-center justify-center gap-1 sm:justify-start">
-                <div className="inline-block rounded-md border border-cyann bg-[#06111a]/80 px-3">
-                  <span className="font-orbitron text-[9px] font-bold uppercase text-slate-400">Player ID: </span>
-                  <span className="font-mono text-[10px] font-bold text-cyan">{playerID}</span>
-                </div>
-                <button
-                  onClick={() => navigator.clipboard.writeText(playerID)}
-                  className="rounded-md border border-cyann bg-[#06111a]/80 px-3 py-2 font-orbitron text-[9px] font-bold uppercase tracking-wider text-slate-300 transition-colors hover:bg-cyan hover:text-[#041018]"
-                >
-                  Copy <i className="fa-regular fa-copy"></i>
-                </button>
-              </div>
-
-              {/* Wallet quick actions */}
-              <div className="mt-3 flex flex-col justify-center gap-2 sm:flex-row sm:justify-start">
-                <button
-                  onClick={() => setActiveTab('wallet')}
-                  className="rounded-md border border-cyann bg-cyan px-4 py-2 font-orbitron text-[10px] font-black uppercase tracking-widest text-[#041018] transition-colors hover:bg-white"
-                >
-                  Open Wallet
-                </button>
-                <Link
-                  to="/tournaments"
-                  className="rounded-md border border-cyann bg-[#07131d]/70 px-4 py-2 text-center font-orbitron text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-cyann hover:text-cyan"
-                >
-                  Join Tournaments
-                </Link>
-              </div>
-
-              {/* Badges */}
-              
+              <p className="profile-email mt-1 truncate text-xs sm:text-sm">{user.email}</p>
             </div>
           </div>
-        </div>
+
+          <div className="profile-identity-details mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <div className="profile-player-id flex min-w-0 items-center justify-between gap-2 rounded-xl border px-3 py-2.5">
+              <span className="min-w-0">
+                <span className="profile-detail-label block text-[9px] font-bold uppercase tracking-wider">Player ID</span>
+                <span className="profile-id-value mt-0.5 block truncate font-mono text-xs font-bold">{playerID}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(playerID)}
+                className="profile-copy-button inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-bold uppercase transition-colors"
+                aria-label="Copy player ID"
+              >
+                <i className="fa-regular fa-copy" aria-hidden="true" />
+                Copy
+              </button>
+            </div>
+            <div className="profile-age flex items-center justify-between rounded-xl border px-3 py-2.5 sm:min-w-[110px] sm:flex-col sm:items-start">
+              <span className="profile-detail-label text-[9px] font-bold uppercase tracking-wider">Age</span>
+              <span className="profile-age-value text-xs font-bold">{profile?.age || 'Not set'}</span>
+            </div>
+          </div>
+
+        </section>
 
         {/* ─── Profile Stats Dashboard grid ─── */}
         <div className="mb-5 grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
@@ -386,66 +471,44 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
             </div>
           ))}
         </div>
+        </>
+        )}
 
-        {/* ─── Main Content Tabs ─── */}
-        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[190px_minmax(0,1fr)] md:gap-5">
-          {/* Tab buttons / selector sidebar */}
-          <aside className="space-y-3">
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-1">
-            {[
-              { id: 'wallet', label: 'Wallet', desc: 'Balance & membership', icon: 'fa-wallet' },
-              { id: 'deployments', label: 'Deployments', desc: 'Registered Tournament', icon: 'fa-shield-halved' },
-              { id: 'settings', label: 'Settings', desc: 'Update profile sheet', icon: 'fa-sliders' },
-              { id: 'achievements', label: 'Achievements', desc: 'Acquired rank titles', icon: 'fa-medal' },
-            ].map((tab) => (
+        {!activeSection ? (
+        <div className="profile-section-list mx-auto grid max-w-3xl gap-2">
+          {profileSections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => setActiveSection(section.id)}
+              className="profile-section-link flex min-h-[68px] w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors"
+            >
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-cyan/20 bg-cyan/10 text-base text-cyan">
+                <i className={`fa-solid ${section.icon}`} aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-space text-sm font-bold">{section.label}</span>
+                <span className="mt-0.5 block text-xs leading-tight text-slate-400">{section.desc}</span>
+              </span>
+              <i className="fa-solid fa-chevron-right text-xs text-slate-400" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+        ) : (
+          <section className="profile-section-panel min-h-[60vh] min-w-0 rounded-2xl border border-cyann bg-[#07131d]/95 p-3 shadow-[0_8px_32px_rgba(0,0,0,0.12)] sm:p-5 md:p-6">
+            <div className="mb-4 flex items-center gap-3 border-b border-white/10 pb-3 sm:mb-5 sm:pb-4">
               <button
-                key={tab.id}
-                onClick={() => { setActiveTab(tab.id); setSuccessMsg(''); setErrorMsg(''); }}
-                aria-pressed={activeTab === tab.id}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-md border p-2.5 text-left transition-colors group sm:gap-3 sm:p-3"
-                style={{
-                  background: activeTab === tab.id
-                    ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 213, 255, 0.36) 100%)'
-                    : 'rgba(7, 19, 29, 0.88)',
-                  borderColor: activeTab === tab.id ? 'rgba(0, 212, 255, 0.75)' : 'rgba(0, 212, 255, 0.3)',
-                  boxShadow: activeTab === tab.id ? 'inset 3px 0 0 #00d4ff' : 'none',
-                }}
+                type="button"
+                onClick={() => setActiveSection(null)}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 text-sm text-slate-300 transition-colors hover:border-cyan/50 hover:text-cyan"
+                aria-label="Back to profile sections"
               >
-                <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors sm:h-9 sm:w-9 ${activeTab === tab.id
-                    ? 'bg-primary/20 border border-primary/30 text-primary shadow-[0_0_10px_rgba(0,212,255,0.2)]'
-                    : 'bg-cyan-400/5 border border-cyann text-gray-400 group-hover:text-gray-300'
-                    }`}
-                >
-                  <i className={`fa-solid ${tab.icon} text-[14px] md:text-sm`}></i>
-                </div>
-                <div className="flex-1">
-                  <span className={`block font-space text-[9px] font-bold uppercase sm:text-[10px] ${activeTab === tab.id ? 'text-cyan' : 'text-slate-200 group-hover:text-white'
-                    }`}>
-                    {tab.label}
-                  </span>
-                  <span className="mt-0.5 hidden truncate font-rajdhani text-[9px] uppercase text-slate-400 sm:block">
-                    {tab.desc}
-                  </span>
-                </div>
+                <i className="fa-solid fa-arrow-left" aria-hidden="true" />
               </button>
-            ))}
-          </div>
-          <div className="relative mt-3 hidden min-h-[250px] overflow-hidden rounded-lg border border-cyann bg-[#06111a] p-5 md:flex md:flex-col md:items-center md:justify-end md:text-center">
-            <img src="https://res.cloudinary.com/dkoirxf41/image/upload/v1790497757/Taigours_E-Sports_White_Logo_only-removebg-preview_tmkzla.png" alt="Taigour E-Sports" className="absolute inset-x-0 top-4 mx-auto h-36 w-36 object-contain opacity-80" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#06111a] via-[#06111a]/50 to-transparent" />
-            <div className="relative z-10">
-              <p className="font-space text-base font-black uppercase text-white">TAIGOUR <span className="text-cyan">E-SPORTS</span></p>
-              <p className="mt-1 font-space text-[8px] font-bold uppercase tracking-[0.3em] text-slate-400">More than a game</p>
-              <Link to="/tournaments" className="mt-4 inline-flex items-center gap-2 rounded-md border border-cyann px-4 py-2 font-space text-[9px] font-bold uppercase text-cyan transition-colors hover:bg-cyan hover:text-[#041018]">
-                Enter the arena <i className="fa-solid fa-arrow-right" />
-              </Link>
+              <h1 className="font-space text-base font-black uppercase tracking-wide text-white sm:text-lg">
+                {profileSections.find((profileSection) => profileSection.id === activeSection)?.title || 'Player Profile'}
+              </h1>
             </div>
-          </div>
-          </aside>
-
-          {/* Tab content panel */}
-          <div className="min-h-[400px] min-w-0 rounded-lg border border-cyann bg-[#07131d]/95 p-3 shadow-[0_0_18px_rgba(0,212,255,0.06)] sm:p-4 md:p-5">
 
             {/* ─── TAB 0: Wallet / Balance ─── */}
             {activeTab === 'wallet' && (
@@ -454,28 +517,23 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
 
             {/* ─── TAB 1: Deployments ─── */}
             {activeTab === 'deployments' && (
-              <div className="space-y-6">
-                <div className="border-b border-white/5 pb-4">
-                  <h3 className="font-orbitron text-base font-bold uppercase tracking-tight text-white sm:text-lg">
-                    ACTIVE SCRIMS & TOURNAMENTS
+              <div className="space-y-4 sm:space-y-5">
+                <div className="border-b border-white/5 pb-3">
+                  <h3 className="font-space text-sm font-bold uppercase tracking-wide text-white sm:text-base">
+                    Tournament registrations
                   </h3>
-                  <p className="text-gray-500 font-rajdhani text-xs uppercase tracking-widest mt-1">
-                    Your active sectors in competitive brackets
-                  </p>
                 </div>
 
                 {myRegistrations.length === 0 ? (
-                  <div className="py-16 text-center">
-                    <i className="fa-solid fa-gamepad text-gray-600 text-4xl mb-4 block animate-bounce"></i>
-                    <p className="font-orbitron font-bold text-gray-400 uppercase tracking-wide">NO ACTIVE DEPLOYMENTS</p>
-                    <p className="text-gray-500 font-rajdhani text-sm mt-1 max-w-sm mx-auto leading-relaxed">
-                      You are currently not deployed in any arena sectors. Enter the arena index and secure your slot!
-                    </p>
+                  <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-10 text-center">
+                    <i className="fa-solid fa-gamepad mb-3 block text-2xl text-cyan"></i>
+                    <p className="font-space text-sm font-bold text-white">No registrations yet</p>
+                    <p className="mt-1 text-xs text-slate-400">Join a tournament to get started.</p>
                     <Link
                       to="/tournaments"
-                      className="mt-6 inline-block px-8 py-3 bg-primary text-dark font-orbitron font-black text-xs uppercase tracking-widest cyber-button"
+                      className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-primary px-4 py-2 font-space text-[11px] font-bold uppercase tracking-wide text-dark"
                     >
-                      ENTER TOURNAMENTS
+                      Browse tournaments
                     </Link>
                   </div>
                 ) : (
@@ -489,32 +547,32 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                           className="bg-bg-dark border border-white/5 p-4 rounded-xl relative overflow-hidden flex flex-col justify-between group hover:border-primary/20 transition-all duration-300"
                         >
                           <div className="space-y-3">
-                            <div className="absolute top-6 right-6 z-10">
-                              <span className={`px-2 py-1 rounded text-[9px] font-orbitron font-bold uppercase tracking-wider border ${
-                                reg.registration_status === 'approved' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                                reg.registration_status === 'rejected' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                                'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                              }`}>
-                                {reg.registration_status || 'PENDING'}
-                              </span>
-                            </div>
                             {parentT?.image && (
-                              <div className="h-24 w-full rounded-lg overflow-hidden relative">
+                              <div className="relative h-24 w-full overflow-hidden rounded-lg">
                                 <img src={parentT.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="scrim" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-bg-dark via-transparent to-transparent"></div>
-                                <span className="absolute top-2 left-2 px-2.5 py-0.5 bg-primary/10 border border-primary/20 text-primary font-orbitron text-[8px] uppercase tracking-wider rounded">
+                                <span className="absolute bottom-2 left-2 rounded border border-primary/20 bg-primary/10 px-2 py-0.5 font-orbitron text-[8px] uppercase tracking-wider text-primary">
                                   {parentT.game}
                                 </span>
                               </div>
                             )}
 
-                            <div>
-                              <h4 className="font-orbitron font-black text-white text-sm uppercase tracking-tight truncate">
-                                {reg.tournamenttitle || 'Tournament Registration'}
-                              </h4>
-                              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <h4 className="truncate font-space text-sm font-bold text-white">
+                                  {reg.tournamenttitle || 'Tournament Registration'}
+                                </h4>
+                                <p className="mt-1 truncate font-mono text-[10px] text-gray-500">
                                 UID: <span className="font-mono text-primary">{reg.gameuid || 'TEAM DEPLOYMENT'}</span>
-                              </p>
+                                </p>
+                              </div>
+                              <span className={`shrink-0 rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${
+                                reg.registration_status === 'approved' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                                reg.registration_status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                                'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                              }`}>
+                                {reg.registration_status || 'PENDING'}
+                              </span>
                             </div>
                           </div>
 
@@ -540,27 +598,72 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
 
             {/* ─── TAB 2: Warrior Settings Form ─── */}
             {activeTab === 'settings' && (
-              <div className="space-y-6 p-2 md:p-6">
-                <div className="border-b border-white/5 pb-4">
-                  <h3 className="font-orbitron text-base font-bold uppercase tracking-tight text-white sm:text-lg">
-                    WARRIOR SHEET SETTINGS
+              <div className="space-y-4 sm:space-y-5">
+                <div className="border-b border-white/5 pb-3">
+                  <h3 className="font-space text-sm font-bold uppercase tracking-wide text-white sm:text-base">
+                    Profile details
                   </h3>
-                  <p className="text-gray-500 font-rajdhani text-xs uppercase tracking-widest mt-1">
-                    Manage your competitive metadata and contact channels
-                  </p>
                 </div>
 
-                <div className="flex flex-col gap-3 rounded-lg border border-cyan-300/15 bg-cyan-400/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <section className="space-y-4 rounded-lg border border-white/10 bg-black/10 p-4">
                   <div>
-                    <h4 className="font-orbitron text-sm font-bold uppercase tracking-wide text-white">
+                    <h4 className="font-space text-xs font-bold uppercase tracking-wide text-white">
+                      Email &amp; Password Sign-In
+                    </h4>
+                    <p className="mt-1 break-all text-xs text-gray-400">
+                      Set password for {user.email}
+                    </p>
+                  </div>
+                  <form onSubmit={handleSetPassword} className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-[10px] font-orbitron font-bold uppercase tracking-widest text-gray-400">
+                      New password
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={6}
+                        required
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        className="mt-1.5 w-full rounded-md border border-white/10 bg-black/30 px-3 py-2.5 font-rajdhani text-sm normal-case tracking-normal text-white outline-none focus:border-primary"
+                        placeholder="At least 6 characters"
+                      />
+                    </label>
+                    <label className="text-[10px] font-orbitron font-bold uppercase tracking-widest text-gray-400">
+                      Confirm password
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={6}
+                        required
+                        value={confirmPassword}
+                        onChange={(event) => setConfirmPassword(event.target.value)}
+                        className="mt-1.5 w-full rounded-md border border-white/10 bg-black/30 px-3 py-2.5 font-rajdhani text-sm normal-case tracking-normal text-white outline-none focus:border-primary"
+                        placeholder="Enter it again"
+                      />
+                    </label>
+                    {passwordError && <p role="alert" className="text-sm text-red-400 sm:col-span-2">{passwordError}</p>}
+                    {passwordMessage && <p role="status" className="text-sm text-emerald-400 sm:col-span-2">{passwordMessage}</p>}
+                    <button
+                      type="submit"
+                      disabled={passwordSaving}
+                      className="w-full rounded-md border border-primary/40 bg-primary/10 px-4 py-2.5 font-orbitron text-[10px] font-black uppercase tracking-widest text-primary transition hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
+                    >
+                      {passwordSaving ? 'Saving password...' : 'Set account password'}
+                    </button>
+                  </form>
+                </section>
+
+                <div className="flex flex-col gap-3 rounded-xl border border-cyan-300/15 bg-cyan-400/5 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                  <div>
+                    <h4 className="font-space text-xs font-bold uppercase tracking-wide text-white">
                       Account Verification
                     </h4>
-                    <p className="mt-1 font-rajdhani text-sm text-gray-400">
+                    <p className="mt-1 text-xs text-gray-400">
                       {profile?.verified
-                        ? 'Your account is verified.'
+                        ? 'Verified'
                         : verificationPending
-                          ? 'Your verification request is pending admin review.'
-                          : 'Request an admin review to verify your account.'}
+                          ? 'Review pending'
+                          : 'Not verified'}
                     </p>
                   </div>
                   {!profile?.verified && !verificationFormOpen && (
@@ -583,8 +686,8 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                     <div className="border-b border-white/10 p-4 sm:p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <h4 className="font-orbitron text-sm font-black uppercase tracking-widest text-white">Verification request</h4>
-                          <p className="mt-1 text-sm text-gray-400">Complete each step to prepare your NPR 50 verification bill.</p>
+                          <h4 className="font-space text-sm font-bold uppercase tracking-wide text-white">Verification request</h4>
+                          <p className="mt-1 text-xs text-gray-400">Fee: Rs. 50</p>
                         </div>
                         <div className="rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-right">
                           <span className="block text-[9px] font-bold uppercase tracking-widest text-amber-200">Verification fee</span>
@@ -616,7 +719,6 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                     <div className="space-y-4 p-4 sm:p-5">
                       {verificationStep === 0 && (
                         <>
-                          <p className="text-sm text-gray-400">These details appear on your bill and help admins match the payment to your player account.</p>
                           <div className="grid gap-4 sm:grid-cols-2">
                             <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-gray-400">
                               Full name / Gamertag
@@ -664,7 +766,6 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
 
                       {verificationStep === 2 && (
                         <>
-                          <p className="text-sm text-gray-400">Check the bill information below before sending your verification request.</p>
                           <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-4 text-sm sm:grid-cols-2">
                             <div><span className="text-gray-500">Player</span><p className="font-bold text-white">{verificationForm.full_name}</p></div>
                             <div><span className="text-gray-500">Email</span><p className="break-all font-bold text-white">{user?.email || '-'}</p></div>
@@ -677,7 +778,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                             <span className="text-sm font-bold text-gray-200">Account verification</span>
                             <strong className="font-orbitron text-lg text-amber-200">Rs. 50/-</strong>
                           </div>
-                          <p className="text-xs leading-relaxed text-gray-500">Submitting sends your request and billing details to the admin team. Verification is granted only after the admin reviews your account and confirms the payment.</p>
+                          <p className="text-xs text-gray-500">Verification follows payment review.</p>
                         </>
                       )}
 
@@ -704,11 +805,11 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                   </section>
                 )}
 
-                <form onSubmit={handleUpdateProfile} className="space-y-5 font-rajdhani">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <form onSubmit={handleUpdateProfile} className="space-y-4 font-rajdhani">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-gray-400 font-orbitron text-[10px] uppercase tracking-widest block">
-                        Full Name / Gamertag
+                        Name / Gamertag
                       </label>
                       <input
                         type="text"
@@ -721,7 +822,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-gray-400 font-orbitron text-[10px] uppercase tracking-widest block">
-                        Age (Years)
+                        Age
                       </label>
                       <input
                         type="number"
@@ -737,7 +838,7 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
 
                     <div className="space-y-1.5">
                       <label className="text-gray-400 font-orbitron text-[10px] uppercase tracking-widest block">
-                        Game UID (For match registrations)
+                        Game UID
                       </label>
                       <input
                         type="text"
@@ -852,31 +953,28 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
             {/* ─── TAB 3: Achievements ─── */}
             {activeTab === 'achievements' && (
               <div className="space-y-6">
-                <div className="border-b border-white/5 pb-4">
-                  <h3 className="font-orbitron text-base font-bold uppercase tracking-tight text-white sm:text-lg">
-                    WARRIOR MEDAL & BADGES
+                <div className="border-b border-white/5 pb-3">
+                  <h3 className="font-space text-sm font-bold uppercase tracking-wide text-white sm:text-base">
+                    Achievements
                   </h3>
-                  <p className="text-gray-500 font-rajdhani text-xs uppercase tracking-widest mt-1">
-                    Acquired combat levels and rankings in official Taigour tournaments
-                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                   {[
-                    { title: 'Arena Rookie', desc: 'Registered in your first match sector', unlocked: totalTournaments >= 1, icon: 'fa-shield', color: 'text-primary' },
-                    { title: 'Veteran Warrior', desc: 'Participated in 5+ tournament sectors', unlocked: totalTournaments >= 5, icon: 'fa-medal', color: 'text-pink' },
-                    { title: 'Top Challenger', desc: 'Earned a spot on the competitive rankings leaderboard', unlocked: leaderEntry !== undefined, icon: 'fa-crown', color: 'text-accent' },
+                    { title: 'Arena Rookie', desc: '1 tournament entry', unlocked: totalTournaments >= 1, icon: 'fa-shield', color: 'text-primary' },
+                    { title: 'Veteran Warrior', desc: '5 tournament entries', unlocked: totalTournaments >= 5, icon: 'fa-medal', color: 'text-pink' },
+                    { title: 'Top Challenger', desc: 'Leaderboard placement', unlocked: leaderEntry !== undefined, icon: 'fa-crown', color: 'text-accent' },
                   ].map((badge, idx) => (
                     <div
                       key={idx}
-                      className={`p-6 rounded-xl border flex flex-col justify-between items-center text-center relative overflow-hidden transition-all duration-300 ${badge.unlocked
+                      className={`p-4 sm:p-5 rounded-xl border flex flex-col justify-between items-center text-center relative overflow-hidden transition-all duration-300 ${badge.unlocked
                         ? 'bg-bg-dark border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.02)]'
                         : 'bg-black/40 border-white/5 opacity-40'
                         }`}
                     >
                       <div className="space-y-4">
                         <div
-                          className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto border transition-transform duration-500 ${badge.unlocked
+                          className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto border transition-transform duration-500 ${badge.unlocked
                             ? 'bg-white/5 border-white/20'
                             : 'bg-white/5 border-white/5'
                             }`}
@@ -884,10 +982,10 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
                           <i className={`fa-solid ${badge.icon} ${badge.unlocked ? badge.color : 'text-gray-600'} text-xl`}></i>
                         </div>
                         <div className="space-y-1">
-                          <h4 className="font-orbitron font-black text-sm uppercase text-white tracking-wide">
+                          <h4 className="font-space font-bold text-xs uppercase text-white tracking-wide">
                             {badge.title}
                           </h4>
-                          <p className="font-rajdhani text-xs text-gray-500 leading-relaxed max-w-[180px] mx-auto">
+                          <p className="font-rajdhani text-xs text-gray-500 leading-snug max-w-[180px] mx-auto">
                             {badge.desc}
                           </p>
                         </div>
@@ -904,9 +1002,8 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
               </div>
             )}
 
-          </div>
-
-        </div>
+          </section>
+        )}
 
       </div>
     </div>

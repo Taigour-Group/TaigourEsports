@@ -52,6 +52,14 @@ export const AuthProvider = ({ children }) => {
     await authService.signInWithGoogle();
   };
 
+  const loginWithEmail = async (email, password) => {
+    return authService.signInWithEmail(email, password);
+  };
+
+  const updateAccountPassword = async (password) => {
+    return authService.setPassword(password);
+  };
+
   const loginWithApple = async () => {
     await authService.signInWithApple();
   };
@@ -75,6 +83,8 @@ export const AuthProvider = ({ children }) => {
     profile,
     loading,
     loginWithGoogle,
+    loginWithEmail,
+    updateAccountPassword,
     loginWithApple,
     loginWithFacebook,
     logout,

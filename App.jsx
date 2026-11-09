@@ -49,9 +49,9 @@ const RouteDataLoader = ({
             ? ['leaderboard']
             : path === '/streams'
               ? ['streams']
-              : path === '/profile'
-                ? ['tournaments', 'registrations', 'leaderboard']
-                : path === '/admin'
+            : path === '/profile'
+              ? ['tournaments', 'registrations', 'leaderboard']
+              : path === '/admin'
                   ? ['tournaments', 'leaderboard', 'streams', 'registrations', 'logs']
                   : [];
     const dataLoaders = {

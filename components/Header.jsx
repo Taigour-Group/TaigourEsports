@@ -6,7 +6,7 @@ import { balanceService } from '../services/balanceService';
 import TgcCoin from './TgcCoin.jsx';
 
 const Header = ({ theme, onToggleTheme }) => {
-  const { user, profile, loading, loginWithGoogle, loginWithApple, loginWithFacebook, logout } = useAuth();
+  const { user, profile, loading, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [playerBalance, setPlayerBalance] = useState(null);
@@ -260,9 +260,9 @@ const Header = ({ theme, onToggleTheme }) => {
                 )}
               </div>
             ) : (
-              <button onClick={loginWithGoogle} className="grid h-9 w-9 place-items-center rounded-md border border-white/15 text-cyan transition-colors hover:border-cyan" id="sign-in-button" aria-label="Sign in">
+              <Link to="/profile" className="grid h-9 w-9 place-items-center rounded-md border border-white/15 text-cyan transition-colors hover:border-cyan" id="sign-in-button" aria-label="Sign in">
                 <i className="fa-regular fa-user text-xs" />
-              </button>
+              </Link>
             )}
           </div>
         </div>
@@ -359,8 +359,8 @@ const Header = ({ theme, onToggleTheme }) => {
                 </Link>
               </div>
             ) : (
-              <button
-                onClick={loginWithGoogle}
+              <Link
+                to="/profile"
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all duration-300 group cursor-pointer"
                 style={{
                   background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
@@ -368,9 +368,9 @@ const Header = ({ theme, onToggleTheme }) => {
                   boxShadow: '0 0 10px rgba(0,212,255,0.08)',
                 }}
               >
-                <i className="fa-brands fa-google text-[9px] text-primary"></i>
+                <i className="fa-regular fa-user text-[9px] text-primary"></i>
                 <span className="font-orbitron font-bold text-[8px] text-primary uppercase tracking-widest">Sign In</span>
-              </button>
+              </Link>
             )}
           </div>
         </div>

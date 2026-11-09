@@ -135,7 +135,7 @@ const PlayerBalance = () => {
 
       if (!response.ok) throw new Error('Failed to submit request');
 
-      setSuccessBox('Request submitted! Please contact us on WhatsApp to confirm payment. Our admin will verify and add your balance shortly.');
+      setSuccessBox('Recharge request sent. Contact WhatsApp to confirm payment.');
       setShowRechargeModal(false);
       setSelectedPackage(null);
     } catch (error) {
@@ -174,7 +174,7 @@ const PlayerBalance = () => {
 
       if (!response.ok) throw new Error('Failed to submit request');
 
-      setSuccessBox(`Request submitted! Please contact us on WhatsApp to confirm payment. Our admin will verify and activate ${MEMBERSHIP_BENEFITS[selectedMembership].name} for you shortly.`);
+      setSuccessBox(`${MEMBERSHIP_BENEFITS[selectedMembership].name} request sent. Contact WhatsApp to confirm payment.`);
       setShowMembershipModal(false);
       setSelectedMembership(null);
     } catch (error) {
@@ -292,7 +292,7 @@ const PlayerBalance = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="player-balance space-y-4 sm:space-y-5">
       {errorBox && (
         <ErrorBox message={errorBox} onClose={() => setErrorBox(null)} type="error" />
       )}
@@ -301,14 +301,10 @@ const PlayerBalance = () => {
       )}
 
       
-        <div className="mb-4 flex flex-col gap-3 border-b border-cyann pb-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h2 className="font-space text-xl font-black uppercase tracking-[0.12em] text-white">Wallet &amp; Membership</h2>
-            <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">Manage your balance, membership and recharge options.</p>
-          </div>
-          <div className="min-w-[180px] rounded-lg border border-cyann bg-[#061521] p-2 text-left md:text-right">
-            <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Membership status</div>
-            <div className={`inline-flex items-center justify-center gap-2 rounded-md bg-[#061925] px-3 py-1.5 text-base font-bold md:text-lg ${playerBalance?.membership_tier === 'none' ? 'text-gray-400' : 'text-yellow-400'}`}>
+        <div className="mb-3 flex flex-col gap-3 border-b border-cyann pb-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-cyann bg-[#061521] px-3 py-2 sm:min-w-[180px] sm:justify-start">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Membership</div>
+            <div className={`inline-flex items-center gap-2 rounded-md bg-[#061925] px-2.5 py-1 text-sm font-bold sm:text-base ${playerBalance?.membership_tier === 'none' ? 'text-gray-400' : 'text-yellow-400'}`}>
               <img
                 src={MEMBERSHIP_BADGE_IMAGE}
                 alt="Membership badge"
@@ -317,17 +313,17 @@ const PlayerBalance = () => {
               <span>{catalogMemberships[playerBalance?.membership_tier]?.name || 'Free Player'}</span>
             </div>
             {playerBalance?.membership_expires_at && playerBalance?.membership_tier !== 'none' && (
-              <div className="text-xs text-slate-500">Expires: {getMembershipExpiry()}</div>
+              <div className="text-[10px] text-slate-500">Until {getMembershipExpiry()}</div>
             )}
           </div>
         </div>
 
-        <div className="mb-4 rounded-lg border border-cyann bg-[#071925] p-4 md:p-5">
+        <div className="mb-3 rounded-2xl border border-cyann bg-[#071925] p-4 sm:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-slate-400">Available balance</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Available balance</div>
               <div className="mt-2 flex items-center gap-3">
-                <div className="flex items-center gap-2 font-orbitron text-2xl font-black text-[#2ce9ff] md:text-4xl">
+                <div className="flex items-center gap-2 font-orbitron text-2xl font-black text-[#2ce9ff] sm:text-4xl">
                   <TgcCoin className="h-6 w-6 md:h-8 md:w-8" />
                   <span>{playerBalance?.balance?.toLocaleString() || '0'}</span>
                 </div>
@@ -347,18 +343,18 @@ const PlayerBalance = () => {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:flex">
               <button
                 type="button"
                 onClick={() => setShowRechargeModal(true)}
-                className="rounded-md bg-cyan-400 px-4 bg-cyan py-2 font-space text-[10px] font-black uppercase tracking-[0.18em] text-[#041018] transition-all hover:bg-white"
+                className="min-h-11 rounded-lg bg-cyan px-3 py-2 font-space text-[10px] font-black uppercase tracking-wide text-[#041018] transition-all hover:bg-white"
               >
                 <i className="fa-solid fa-wallet mr-2" />Recharge Account
               </button>
               <button
                 type="button"
                 onClick={() => setShowMembershipModal(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-cyann bg-cyan-400/5 px-4 py-2 font-space text-[10px] font-black uppercase tracking-[0.18em] text-white transition-all hover:border-cyann hover:text-cyan"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-cyann bg-cyan-400/5 px-3 py-2 font-space text-[10px] font-black uppercase tracking-wide text-white transition-all hover:border-cyann hover:text-cyan"
               >
                 <img src={MEMBERSHIP_BADGE_IMAGE} alt="Membership" className="h-4 w-4 object-contain" />
                 <span>Get Membership</span>
@@ -367,7 +363,7 @@ const PlayerBalance = () => {
           </div>
         </div>
 
-        <div className="no-scrollbar mb-4 flex overflow-x-auto border-b border-cyann">
+        <div className="player-balance-nav mb-4 grid grid-cols-3 gap-1.5 sm:flex sm:overflow-x-auto sm:border-b sm:border-cyann">
           {[
             { key: 'balance', label: 'Recharge', icon: 'fa-money-bill' },
             { key: 'membership', label: 'Membership', icon: 'fa-crown' },
@@ -381,13 +377,13 @@ const PlayerBalance = () => {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`shrink-0 border-b-2 px-3 py-3 text-[9px] font-bold uppercase tracking-[0.18em] transition-colors md:px-4 md:text-[10px] ${
+              className={`flex min-h-10 items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-[9px] font-bold uppercase tracking-wide transition-colors sm:min-h-0 sm:shrink-0 sm:rounded-none sm:border-0 sm:border-b-2 sm:px-4 sm:py-3 sm:text-[10px] ${
                 activeTab === tab.key
-                  ? 'border-cyann text-cyan'
-                  : 'border-transparent text-slate-400 hover:text-white'
+                  ? 'border-cyann bg-cyan/10 text-cyan sm:bg-transparent'
+                  : 'border-white/10 text-slate-400 hover:text-white sm:border-transparent'
               }`}
             >
-              <i className={`fa-solid ${tab.icon} mr-2`} />{tab.label}
+              <i className={`fa-solid ${tab.icon}`} aria-hidden="true" />{tab.label}
             </button>
           ))}
         </div>
@@ -397,14 +393,13 @@ const PlayerBalance = () => {
             <div className="space-y-4">
               <div className="pt-1">
                 <h4 className="font-space text-lg font-black uppercase tracking-[0.12em] text-white">Recharge packages</h4>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">Choose a package that fits your needs.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 min-[480px]:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-5">
                 {catalogRechargePackages.map((pkg, idx) => (
                   <div
                     key={idx}
-                    className="group relative cursor-pointer rounded-lg border border-cyann bg-[#06111a] p-3 transition-all hover:border-cyann hover:shadow-[0_0_20px_rgba(59,217,242,0.08)]"
+                    className="group relative cursor-pointer rounded-xl border border-cyann bg-[#06111a] p-3 transition-all hover:border-cyann hover:shadow-[0_0_20px_rgba(59,217,242,0.08)] sm:p-4"
                     onClick={() => handleRechargeClick(pkg)}
                   >
                     {idx === 1 && (
@@ -449,7 +444,6 @@ const PlayerBalance = () => {
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <div>
                   <h4 className="font-space text-lg font-black uppercase tracking-[0.12em] text-white">Membership plans</h4>
-                  <p className="mt-1 text-xs text-slate-400">Choose a plan to see its details and request an upgrade.</p>
                 </div>
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Prices in TGC</span>
               </div>
@@ -588,7 +582,7 @@ const PlayerBalance = () => {
                 >
                   {transferLoading ? 'Transferring...' : 'Send Transfer'}
                 </button>
-                <div className="mt-2 text-[11px] text-slate-500">Tip: Double-check the receiver Player ID. Transfers are final.</div>
+                <div className="mt-2 text-[11px] text-slate-500">Transfers cannot be reversed.</div>
               </div>
             </div>
           )}
@@ -635,7 +629,7 @@ const PlayerBalance = () => {
                 </span>
                 <div>
                   <h3 className="font-space text-lg font-black uppercase tracking-wider text-white">Redeem a coupon</h3>
-                  <p className="mt-1 text-sm text-slate-400">Enter a coupon code to claim its TGC or membership reward.</p>
+                  <p className="mt-1 text-xs text-slate-400">Claim TGC or membership rewards.</p>
                 </div>
               </div>
               <label htmlFor="player-coupon-code" className="block text-xs font-bold uppercase tracking-widest text-slate-400">Coupon code</label>
@@ -657,7 +651,7 @@ const PlayerBalance = () => {
                   {couponRedeeming ? <><i className="fa-solid fa-spinner fa-spin mr-2" />Redeeming</> : 'Claim reward'}
                 </button>
               </div>
-              <p className="text-xs text-slate-500">Coupons are one-time use and are bound to your player account.</p>
+              <p className="text-xs text-slate-500">One-time use. Bound to your account.</p>
             </form>
           )}
 
@@ -665,8 +659,7 @@ const PlayerBalance = () => {
             <div className="flex min-h-[180px] items-center justify-center p-8 text-center">
               <div>
                 <i className="fa-solid fa-store text-4xl text-slate-500" />
-                <div className="mt-4 font-space text-xl font-black uppercase text-white">Store Coming Soon!</div>
-                <div className="mt-2 text-sm text-slate-400">Exciting items and offers will be available here soon. Stay tuned!</div>
+                <div className="mt-3 font-space text-base font-bold text-white">Store unavailable</div>
               </div>
             </div>
           )}
@@ -680,7 +673,7 @@ const PlayerBalance = () => {
             <h3 className="text-xl font-orbitron font-black text-white mb-2">
               <i className="fa-brands fa-whatsapp text-green-400 mr-2"></i>Recharge Account
             </h3>
-            <p className="text-gray-400 text-sm mb-4">Please contact us via WhatsApp to complete your purchase</p>
+            <p className="text-gray-400 text-xs mb-4">WhatsApp confirmation required</p>
             
             {selectedPackage && (
               <div className="space-y-4 mb-6 p-4 bg-white/5 rounded-lg border border-cyan-400/10">
