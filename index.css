@@ -236,8 +236,24 @@ html[data-theme='light'] .home-page #games a.group .text-cyan {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
-html[data-theme='light'] .home-page #news a.group > div.relative:first-child {
-  background-color: #0b141d !important;
+html[data-theme='light'] .home-page #games [data-image-backdrop='game-card'] > img {
+  opacity: 0.9 !important;
+}
+
+html[data-theme='light'] .home-page #games [data-image-backdrop='game-card'] > div.absolute {
+  background-image: linear-gradient(to right, rgba(6, 17, 27, 0.82), rgba(6, 17, 27, 0.28) 58%, transparent) !important;
+}
+
+html[data-theme='light'] .home-page #games [data-image-backdrop='game-card']:hover > img {
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] .home-page #news [data-image-backdrop='news-card-image'] > img {
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] .home-page #news [data-image-backdrop='news-card-image'] > div.absolute {
+  background-image: none !important;
 }
 
 html[data-theme='light'] .home-page #contact,
