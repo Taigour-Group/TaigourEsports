@@ -71,9 +71,7 @@ const Header = ({ theme, onToggleTheme }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isActive = (path) => path.startsWith('/#')
-    ? location.pathname === '/' && location.hash === path.slice(1)
-    : location.pathname === path;
+  const isActive = (path) => location.pathname === path;
 
   const navLinks = [
     { name: 'Home', path: '/', icon: 'fa-house' },
@@ -88,9 +86,7 @@ const Header = ({ theme, onToggleTheme }) => {
     { name: 'Tournaments', path: '/tournaments' },
     { name: 'Games', path: '/games' },
     { name: 'Rankings', path: '/leaderboard' },
-    { name: 'News', path: '/news' },
-    { name: 'About', path: '/#about' },
-    { name: 'Contact', path: '/#contact' }
+    { name: 'Live', path: '/streams' }
   ];
 
   const getUserDisplayName = () => {

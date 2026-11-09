@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import OnboardingModal from './components/OnboardingModal.jsx';
@@ -15,7 +15,6 @@ const TournamentsPage = lazy(() => import('./pages/TournamentsPage.jsx'));
 const TournamentDetailsPage = lazy(() => import('./pages/TournamentDetailsPage.jsx'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage.jsx'));
 const StreamsPage = lazy(() => import('./pages/StreamsPage.jsx'));
-const NewsPage = lazy(() => import('./pages/NewsPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
 const BecomePartnerPage = lazy(() => import('./pages/BecomePartnerPage.jsx'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage.jsx'));
@@ -338,7 +337,7 @@ const App = () => {
               <Route path="/tournament/:id" element={<TournamentDetailsPage tournaments={tournaments} onRegister={handleRegister} registrations={registrations} />} />
               <Route path="/leaderboard" element={<LeaderboardPage leaderboard={leaderboard} />} />
               <Route path="/streams" element={<StreamsPage streams={streams} />} />
-              <Route path="/news" element={<NewsPage />} />
+              <Route path="/news" element={<Navigate to="/streams" replace />} />
               <Route path="/profile" element={<ProfilePage tournaments={tournaments} registrations={registrations} leaderboard={leaderboard} />} />
               <Route path="/become-partner" element={<BecomePartnerPage />} />
               <Route path="/legal" element={<LegalLandingPage />} />

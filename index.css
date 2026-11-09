@@ -159,6 +159,7 @@ html[data-theme='light'] :is(section, div, a):has(> img.absolute) [class*="text-
 }
 
 html[data-theme='light'] #home {
+  background-color: #061018 !important;
   color: #f8fafc;
 }
 
@@ -175,34 +176,8 @@ html[data-theme='light'] .home-page #tournaments {
   background-color: #ffffff !important;
 }
 
-html[data-theme='light'] .home-page #about {
-  background-color: #edf7fa !important;
-  color: #172033 !important;
-}
-
-html[data-theme='light'] .home-page #about h2,
-html[data-theme='light'] .home-page #about h3 {
-  color: #172033 !important;
-}
-
-html[data-theme='light'] .home-page #about .text-cyan {
-  color: #006b82 !important;
-}
-
-html[data-theme='light'] .home-page #about .text-slate-400 {
-  color: #526174 !important;
-}
-
-html[data-theme='light'] .home-page #about > img[alt=""] {
-  filter: invert(1) !important;
-}
-
 html[data-theme='light'] .home-page #games {
   background-color: #f3f6fa !important;
-}
-
-html[data-theme='light'] .home-page #news {
-  background-color: #ffffff !important;
 }
 
 html[data-theme='light'] .home-page #tournaments article {
@@ -248,28 +223,8 @@ html[data-theme='light'] .home-page #games [data-image-backdrop='game-card']:hov
   opacity: 1 !important;
 }
 
-html[data-theme='light'] .home-page #news [data-image-backdrop='news-card-image'] > img {
-  opacity: 1 !important;
-}
-
-html[data-theme='light'] .home-page #news [data-image-backdrop='news-card-image'] > div.absolute {
-  background-image: none !important;
-}
-
-html[data-theme='light'] .home-page #contact,
-html[data-theme='light'] .home-page #contact h2,
-html[data-theme='light'] .home-page #contact .text-white,
-html[data-theme='light'] .home-page #contact .text-slate-200 {
-  color: #f8fafc !important;
-}
-
-html[data-theme='light'] .home-page #contact .text-cyan,
 html[data-theme='light'] .home-page #home .text-cyan {
   color: #22d3ee !important;
-}
-
-html[data-theme='light'] .home-page #contact [class*="bg-[#041018]"] {
-  background-color: rgba(4, 16, 24, 0.82) !important;
 }
 
 html[data-theme='light'] .leaderboard-page > section:nth-of-type(2) {
