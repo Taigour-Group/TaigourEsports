@@ -187,6 +187,10 @@ html[data-theme='light'] .home-page #about .text-slate-400 {
   color: #526174 !important;
 }
 
+html[data-theme='light'] .home-page #about > img[alt=""] {
+  filter: invert(1);
+}
+
 html[data-theme='light'] .home-page #games {
   background-color: #f3f6fa !important;
 }
