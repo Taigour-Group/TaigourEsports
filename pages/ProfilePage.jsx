@@ -52,6 +52,13 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
   });
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [playerIdCopied, setPlayerIdCopied] = useState(false);
+
+  useEffect(() => {
+    if (!playerIdCopied) return undefined;
+    const timeout = window.setTimeout(() => setPlayerIdCopied(false), 2000);
+    return () => window.clearTimeout(timeout);
+  }, [playerIdCopied]);
 
   const handleEmailAuth = async (event) => {
     event.preventDefault();
@@ -311,7 +318,32 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
   const playerKills = profile?.total_kills || leaderEntry?.kills || 0;
   const playerID = profile?.player_id || 'N/A';
 
-
+  const handleCopyPlayerId = async () => {
+    setPlayerIdCopied(false);
+    try {
+      try {
+        await navigator.clipboard.writeText(playerID);
+      } catch {
+        const textArea = document.createElement('textarea');
+        textArea.value = playerID;
+        textArea.setAttribute('readonly', '');
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        let copied;
+        try {
+          textArea.select();
+          copied = document.execCommand('copy');
+        } finally {
+          textArea.remove();
+        }
+        if (!copied) throw new Error('Clipboard copy was unsuccessful.');
+      }
+      setPlayerIdCopied(true);
+    } catch {
+      setErrorMsg('Unable to copy Player ID. Please try again.');
+    }
+  };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -428,12 +460,13 @@ const ProfilePage = ({ tournaments, registrations, leaderboard }) => {
               </span>
               <button
                 type="button"
-                onClick={() => navigator.clipboard.writeText(playerID)}
+                onClick={handleCopyPlayerId}
                 className="profile-copy-button inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-bold uppercase transition-colors"
-                aria-label="Copy player ID"
+                aria-label={playerIdCopied ? 'Player ID copied' : 'Copy player ID'}
+                aria-live="polite"
               >
-                <i className="fa-regular fa-copy" aria-hidden="true" />
-                Copy
+                <i className={playerIdCopied ? 'fa-solid fa-check' : 'fa-regular fa-copy'} aria-hidden="true" />
+                {playerIdCopied ? 'Copied!' : 'Copy'}
               </button>
             </div>
             <div className="profile-age flex items-center justify-between rounded-xl border px-3 py-2.5 sm:min-w-[110px] sm:flex-col sm:items-start">
