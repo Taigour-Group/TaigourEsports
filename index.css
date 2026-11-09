@@ -34,9 +34,15 @@ html[data-theme='light'] body {
 }
 
 html[data-theme='light'] #desktop-navbar,
-html[data-theme='light'] .site-header-mobile[class*="bg-[#030b12]"] {
+html[data-theme='light'] .site-header-mobile {
   background: rgba(255, 255, 255, 0.96) !important;
   border-color: #dce3eb !important;
+}
+
+html[data-theme='dark'] #desktop-navbar,
+html[data-theme='dark'] .site-header-mobile {
+  background: rgba(3, 11, 18, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 html[data-theme='light'] .bg-bg-dark,

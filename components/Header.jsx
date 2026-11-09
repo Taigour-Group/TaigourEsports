@@ -126,7 +126,6 @@ const Header = ({ theme, onToggleTheme }) => {
         id="desktop-navbar"
         className="fixed top-0 z-[100] hidden w-full py-2 transition-all duration-300 md:block"
         style={{
-          background: 'rgba(3, 11, 18, 0.96)',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}
       >
@@ -271,7 +270,7 @@ const Header = ({ theme, onToggleTheme }) => {
       {/* ─── Mobile Top Bar (minimal, just logo) ─── */}
       <nav
         className={`site-header-mobile fixed top-0 w-full z-[100] transition-all duration-300 md:hidden ${
-          isScrolled ? 'bg-[#030b12]/98 border-b border-primary/10 py-3 shadow-xl' : 'bg-transparent py-5'
+          isScrolled ? 'border-b border-primary/10 py-3 shadow-xl' : 'py-5'
         }`}
       >
         <div className="container mx-auto px-4 flex justify-between items-center">
