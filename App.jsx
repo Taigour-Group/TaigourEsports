@@ -177,7 +177,7 @@ const App = () => {
       const path = location.pathname.replace(/\/$/, '') || '/';
       const defaultMeta = {
         title: 'Taigour E-Sports | Nepal Esports Tournaments',
-        description: 'Taigour E-Sports is Nepal’s premier esports tournament platform for PUBG Mobile, Free Fire, Ludo, live streams, leaderboards, and competitive gaming events.'
+        description: 'One province, one pride, one national stage. Discover esports tournaments and live matches with Taigour E-Sports in Nepal.'
       };
 
       const routeMeta = {

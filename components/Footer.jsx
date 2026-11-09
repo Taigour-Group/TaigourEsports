@@ -12,7 +12,7 @@ const Footer = () => (
             <img src={Logo} alt="Taigour" className="h-12 w-12 object-contain" />
             <span className="font-space text-lg font-bold leading-tight">TAIGOUR<span className="block text-[10px] font-semibold uppercase tracking-[.35em] text-cyan">E-Sports</span></span>
           </Link>
-          <p className="max-w-xs text-xs leading-relaxed text-slate-400">From Local Legends to National Champions.</p>
+          <p className="max-w-xs text-xs leading-relaxed text-slate-400">One province, one pride, one national stage.</p>
         </div>
 
         <div>
