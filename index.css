@@ -188,7 +188,7 @@ html[data-theme='light'] .home-page #about .text-slate-400 {
 }
 
 html[data-theme='light'] .home-page #about > img[alt=""] {
-  filter: invert(1);
+  filter: invert(1) !important;
 }
 
 html[data-theme='light'] .home-page #games {
